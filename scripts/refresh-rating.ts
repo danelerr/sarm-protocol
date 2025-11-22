@@ -188,16 +188,17 @@ async function refreshRating(tokenSymbol: 'USDC' | 'USDT' | 'DAI') {
     const logs = receipt.logs;
     for (const log of logs) {
       try {
-        const decoded = publicClient.parseEventLogs({
-          abi: oracleAbi,
-          logs: [log],
-        });
-        if (decoded.length > 0) {
-          const event = decoded[0];
-          console.log(`\n📊 Rating Update:`);
-          console.log(`   Old Rating: ${event.args.oldRating}`);
-          console.log(`   New Rating: ${event.args.newRating}`);
-        }
+        // Use decodeEventLog from viem instead of parseEventLogs
+        const decoded = await import('viem').then(({ decodeEventLog }) => 
+          decodeEventLog({
+            abi: oracleAbi,
+            data: log.data,
+            topics: log.topics,
+          })
+        );
+        console.log(`\n[UPDATE] Rating Update:`);
+        console.log(`   Old Rating: ${decoded.args.oldRating}`);
+        console.log(`   New Rating: ${decoded.args.newRating}`);
       } catch {
         // Not our event, skip
       }
