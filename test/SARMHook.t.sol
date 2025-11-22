@@ -16,6 +16,7 @@ import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
 import {SARMHook} from "../src/hooks/SARMHook.sol";
 import {SSAOracleAdapter} from "../src/oracles/SSAOracleAdapter.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
+import {MockVerifier} from "../src/mocks/MockVerifier.sol";
 
 /**
  * @title SARMHookTest
@@ -26,11 +27,23 @@ contract SARMHookTest is Test, Deployers {
     using CurrencyLibrary for Currency;
 
     /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    // Re-declare events for testing
+    event RatingUpdated(address indexed token, uint8 oldRating, uint8 newRating);
+    event FeedIdSet(address indexed token, bytes32 feedId);
+    event RiskModeChanged(PoolId indexed poolId, SARMHook.RiskMode mode);
+    event RiskCheck(PoolId indexed poolId, uint8 rating0, uint8 rating1, uint8 effectiveRating);
+    event FeeOverrideApplied(PoolId indexed poolId, uint8 rating, uint24 fee);
+
+    /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
 
     SSAOracleAdapter public oracle;
     SARMHook public hook;
+    MockVerifier public mockVerifier;
     
     MockERC20 public mockUSDC;
     MockERC20 public mockUSDT;
@@ -55,8 +68,11 @@ contract SARMHookTest is Test, Deployers {
         mockUSDT = new MockERC20("Mock USDT", "USDT", 6);
         mockDAI = new MockERC20("Mock DAI", "DAI", 18);
 
-        // Deploy oracle adapter
-        oracle = new SSAOracleAdapter();
+        // Deploy mock DataLink verifier
+        mockVerifier = new MockVerifier();
+
+        // Deploy oracle adapter with mock verifier
+        oracle = new SSAOracleAdapter(address(mockVerifier));
 
         // Deploy SARM Hook
         // Note: Hook address must satisfy Uniswap v4 address requirements
@@ -121,7 +137,7 @@ contract SARMHookTest is Test, Deployers {
     function test_OracleAdapter_SetRatingManual() public {
         // Set rating for USDC
         vm.expectEmit(true, false, false, true);
-        emit SSAOracleAdapter.RatingUpdated(address(mockUSDC), 0, 1);
+        emit RatingUpdated(address(mockUSDC), 0, 1);
         
         oracle.setRatingManual(address(mockUSDC), 1);
 
@@ -136,7 +152,7 @@ contract SARMHookTest is Test, Deployers {
 
         // Update to higher rating
         vm.expectEmit(true, false, false, true);
-        emit SSAOracleAdapter.RatingUpdated(address(mockUSDC), 1, 4);
+        emit RatingUpdated(address(mockUSDC), 1, 4);
         
         oracle.setRatingManual(address(mockUSDC), 4);
 
@@ -261,7 +277,7 @@ contract SARMHookTest is Test, Deployers {
 
         // Second swap - should transition to ELEVATED_RISK
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.RiskModeChanged(poolId, SARMHook.RiskMode.ELEVATED_RISK);
+        emit RiskModeChanged(poolId, SARMHook.RiskMode.ELEVATED_RISK);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -349,7 +365,7 @@ contract SARMHookTest is Test, Deployers {
 
         // Expect RiskCheck event
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.RiskCheck(poolId, 1, 2, 2);
+        emit RiskCheck(poolId, 1, 2, 2);
 
         vm.prank(BOB);
         swapRouter.swap(
@@ -491,13 +507,13 @@ contract SARMHookTest is Test, Deployers {
     //////////////////////////////////////////////////////////////*/
 
     function test_DynamicFees_LowRiskFee() public {
-        // Set low risk ratings (1-2) → should get 0.05% fee (500)
+        // Set low risk ratings (1-2) -> should get 0.05% fee (500)
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 2);
 
         // Expect FeeOverrideApplied event with 500 (0.05%)
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.FeeOverrideApplied(poolId, 2, 500);
+        emit FeeOverrideApplied(poolId, 2, 500);
 
         vm.prank(BOB);
         swapRouter.swap(
@@ -518,13 +534,13 @@ contract SARMHookTest is Test, Deployers {
     }
 
     function test_DynamicFees_ModerateRiskFee() public {
-        // Set moderate risk rating (3) → should get 0.10% fee (1000)
+        // Set moderate risk rating (3) -> should get 0.10% fee (1000)
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 3);
 
         // Expect FeeOverrideApplied event with 1000 (0.10%)
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.FeeOverrideApplied(poolId, 3, 1000);
+        emit FeeOverrideApplied(poolId, 3, 1000);
 
         vm.prank(BOB);
         swapRouter.swap(
@@ -553,7 +569,7 @@ contract SARMHookTest is Test, Deployers {
 
         console2.log("Rating 1: Fee should be 500 (0.05%)");
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.FeeOverrideApplied(poolId, 1, 500);
+        emit FeeOverrideApplied(poolId, 1, 500);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -575,7 +591,7 @@ contract SARMHookTest is Test, Deployers {
 
         console2.log("Rating 2: Fee should still be 500 (0.05%)");
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.FeeOverrideApplied(poolId, 2, 500);
+        emit FeeOverrideApplied(poolId, 2, 500);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -597,7 +613,7 @@ contract SARMHookTest is Test, Deployers {
 
         console2.log("Rating 3: Fee should double to 1000 (0.10%)");
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.FeeOverrideApplied(poolId, 3, 1000);
+        emit FeeOverrideApplied(poolId, 3, 1000);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -623,7 +639,7 @@ contract SARMHookTest is Test, Deployers {
 
         // First swap
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.FeeOverrideApplied(poolId, 2, 500);
+        emit FeeOverrideApplied(poolId, 2, 500);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -642,7 +658,7 @@ contract SARMHookTest is Test, Deployers {
 
         // Second swap - event should be emitted again
         vm.expectEmit(true, false, false, true);
-        emit SARMHook.FeeOverrideApplied(poolId, 2, 500);
+        emit FeeOverrideApplied(poolId, 2, 500);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -666,6 +682,221 @@ contract SARMHookTest is Test, Deployers {
         oracle.setRatingManual(address(mockUSDT), 4);
 
         // Swap should revert, so FeeOverrideApplied event should NOT be emitted
+        vm.prank(BOB);
+        vm.expectRevert(); // Hook error wrapped by Uniswap
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    CHAINLINK DATALINK TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_DataLink_SetFeedId() public {
+        bytes32 feedId = bytes32(uint256(0x123456789));
+        
+        vm.expectEmit(true, false, false, true);
+        emit FeedIdSet(address(mockUSDC), feedId);
+        
+        oracle.setFeedId(address(mockUSDC), feedId);
+        
+        assertEq(oracle.tokenFeedId(address(mockUSDC)), feedId);
+    }
+
+    function test_DataLink_SetFeedId_RevertInvalidFeedId() public {
+        vm.expectRevert(SSAOracleAdapter.InvalidFeedId.selector);
+        oracle.setFeedId(address(mockUSDC), bytes32(0));
+    }
+
+    function test_DataLink_RefreshRatingWithReport_Success() public {
+        // Setup: Configure feed ID
+        bytes32 feedId = bytes32(uint256(0x123456789));
+        oracle.setFeedId(address(mockUSDC), feedId);
+
+        // Mock verifier response using DataLink v4 payload format
+        // benchmarkPrice = 3e18 (rating 3), timestamp = now
+        bytes memory verifiedData = abi.encode(
+            feedId,                      // feedIdDecoded
+            uint32(block.timestamp),     // validFromTimestamp
+            uint32(block.timestamp),     // observationsTimestamp
+            uint192(0),                  // nativeFee
+            uint192(0),                  // linkFee
+            uint32(block.timestamp + 1 days), // expiresAt
+            int192(int256(3e18)),        // benchmarkPrice (rating 3 * 1e18)
+            uint32(1)                    // marketStatus
+        );
+        mockVerifier.setResponse(verifiedData);
+
+        // Create a fake report (content doesn't matter since verifier is mocked)
+        bytes memory fakeReport = abi.encodePacked("fake_report_data");
+
+        // Expect RatingUpdated event
+        vm.expectEmit(true, false, false, true);
+        emit RatingUpdated(address(mockUSDC), 0, 3);
+
+        // Call refreshRatingWithReport
+        oracle.refreshRatingWithReport(address(mockUSDC), fakeReport);
+
+        // Verify state was updated
+        (uint8 rating, uint256 lastUpdated) = oracle.getRating(address(mockUSDC));
+        assertEq(rating, 3);
+        assertEq(lastUpdated, block.timestamp);
+    }
+
+    function test_DataLink_RefreshRatingWithReport_RevertNoFeedId() public {
+        // Don't set feed ID for token
+        bytes memory fakeReport = abi.encodePacked("fake_report");
+
+        vm.expectRevert(SSAOracleAdapter.InvalidFeedId.selector);
+        oracle.refreshRatingWithReport(address(mockUSDC), fakeReport);
+    }
+
+    function test_DataLink_RefreshRatingWithReport_RevertStaleReport() public {
+        // Setup: Configure feed ID
+        bytes32 feedId = bytes32(uint256(0x123456789));
+        oracle.setFeedId(address(mockUSDC), feedId);
+
+        // Mock verifier response with current timestamp
+        uint32 reportTimestamp = uint32(block.timestamp);
+        bytes memory verifiedData = abi.encode(
+            feedId,
+            reportTimestamp,
+            reportTimestamp,
+            uint192(0),
+            uint192(0),
+            uint32(block.timestamp + 1 days),
+            int192(int256(3e18)),  // rating 3
+            uint32(1)
+        );
+        mockVerifier.setResponse(verifiedData);
+
+        // Warp time forward 2 days to make report stale
+        vm.warp(block.timestamp + 2 days);
+
+        bytes memory fakeReport = abi.encodePacked("stale_report");
+
+        vm.expectRevert(SSAOracleAdapter.StaleReport.selector);
+        oracle.refreshRatingWithReport(address(mockUSDC), fakeReport);
+    }
+
+    function test_DataLink_RefreshRatingWithReport_RevertInvalidRating() public {
+        // Setup: Configure feed ID
+        bytes32 feedId = bytes32(uint256(0x123456789));
+        oracle.setFeedId(address(mockUSDC), feedId);
+
+        // Mock verifier response with invalid rating (0)
+        bytes memory verifiedData = abi.encode(
+            feedId,
+            uint32(block.timestamp),
+            uint32(block.timestamp),
+            uint192(0),
+            uint192(0),
+            uint32(block.timestamp + 1 days),
+            int192(int256(0)),  // invalid: rating 0
+            uint32(1)
+        );
+        mockVerifier.setResponse(verifiedData);
+
+        bytes memory fakeReport = abi.encodePacked("invalid_rating_report");
+
+        vm.expectRevert(SSAOracleAdapter.InvalidRating.selector);
+        oracle.refreshRatingWithReport(address(mockUSDC), fakeReport);
+    }
+
+    function test_DataLink_RefreshRatingWithReport_UpdateExistingRating() public {
+        // Setup: Set initial rating manually
+        oracle.setRatingManual(address(mockUSDC), 1);
+
+        // Configure feed ID
+        bytes32 feedId = bytes32(uint256(0x123456789));
+        oracle.setFeedId(address(mockUSDC), feedId);
+
+        // Mock verifier response: upgrade rating to 4
+        bytes memory verifiedData = abi.encode(
+            feedId,
+            uint32(block.timestamp),
+            uint32(block.timestamp),
+            uint192(0),
+            uint192(0),
+            uint32(block.timestamp + 1 days),
+            int192(int256(4e18)),  // rating 4
+            uint32(1)
+        );
+        mockVerifier.setResponse(verifiedData);
+
+        bytes memory fakeReport = abi.encodePacked("upgrade_report");
+
+        // Expect RatingUpdated event with old rating = 1, new rating = 4
+        vm.expectEmit(true, false, false, true);
+        emit RatingUpdated(address(mockUSDC), 1, 4);
+
+        oracle.refreshRatingWithReport(address(mockUSDC), fakeReport);
+
+        // Verify rating was updated
+        (uint8 rating, ) = oracle.getRating(address(mockUSDC));
+        assertEq(rating, 4);
+    }
+
+    function test_DataLink_Integration_HookUsesDataLinkRating() public {
+        // This test verifies end-to-end: DataLink updates rating, hook enforces it
+
+        // Setup: Configure feed IDs for both tokens
+        oracle.setFeedId(address(mockUSDC), bytes32(uint256(0x111)));
+        oracle.setFeedId(address(mockUSDT), bytes32(uint256(0x222)));
+
+        // Initially set low ratings manually
+        oracle.setRatingManual(address(mockUSDC), 1);
+        oracle.setRatingManual(address(mockUSDT), 1);
+
+        // Verify swap works with low risk
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+
+        // DataLink update: USDT rating degraded to 5 (depeg)
+        bytes32 usdtFeedId = bytes32(uint256(0x222));
+        bytes memory verifiedData = abi.encode(
+            usdtFeedId,
+            uint32(block.timestamp),
+            uint32(block.timestamp),
+            uint192(0),
+            uint192(0),
+            uint32(block.timestamp + 1 days),
+            int192(int256(5e18)),  // rating 5 (depeg!)
+            uint32(1)
+        );
+        mockVerifier.setResponse(verifiedData);
+        
+        bytes memory report = abi.encodePacked("depeg_alert");
+        oracle.refreshRatingWithReport(address(mockUSDT), report);
+
+        // Verify rating was updated
+        (uint8 rating, ) = oracle.getRating(address(mockUSDT));
+        assertEq(rating, 5);
+
+        // Now swap should be blocked by circuit breaker
         vm.prank(BOB);
         vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(

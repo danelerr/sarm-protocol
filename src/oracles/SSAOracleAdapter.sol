@@ -2,13 +2,13 @@
 pragma solidity ^0.8.26;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IDataLinkVerifier} from "../interfaces/IDataLinkVerifier.sol";
 
 /**
  * @title SSAOracleAdapter
  * @notice Single source of truth for stablecoin S&P Global Stability Assessment (SSA) ratings on-chain.
  * @dev This adapter caches stablecoin ratings and serves them to the SARM Hook.
- *      Phase 1: Manual rating setter for development/testing.
- *      Phase 2+: Integration with Chainlink DataLink for real S&P Global SSA feeds.
+ *      Integrates with Chainlink DataLink for real S&P Global SSA feeds via pull-based verification.
  *
  * Rating Scale:
  *   1 = Minimal risk (well-collateralized, audited stablecoins)
@@ -27,6 +27,8 @@ contract SSAOracleAdapter is Ownable {
     error InvalidRating();
     error TokenNotRated();
     error InvalidFeed();
+    error InvalidFeedId();
+    error StaleReport();
     error ChainlinkNotImplemented();
 
     /*//////////////////////////////////////////////////////////////
@@ -42,15 +44,21 @@ contract SSAOracleAdapter is Ownable {
     event RatingUpdated(address indexed token, uint8 oldRating, uint8 newRating);
 
     /**
-     * @notice Emitted when a Chainlink feed address is set for a token.
+     * @notice Emitted when a DataLink feed ID is set for a token.
      * @param token Address of the stablecoin token.
-     * @param feed Address of the Chainlink SSA feed (Phase 2+).
+     * @param feedId Chainlink DataLink feed ID (bytes32).
      */
-    event FeedSet(address indexed token, address feed);
+    event FeedIdSet(address indexed token, bytes32 feedId);
 
     /*//////////////////////////////////////////////////////////////
                                 STORAGE
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Chainlink DataLink verifier proxy for on-chain report verification.
+    IDataLinkVerifier public immutable verifier;
+
+    /// @notice Maximum age of a report before it's considered stale (24 hours).
+    uint256 public constant MAX_STALENESS = 1 days;
 
     /// @notice Mapping from token address to its current SSA rating (1-5, 0 = not rated).
     mapping(address => uint8) public tokenRating;
@@ -58,14 +66,21 @@ contract SSAOracleAdapter is Ownable {
     /// @notice Mapping from token address to the timestamp of last rating update.
     mapping(address => uint256) public tokenRatingLastUpdated;
 
-    /// @notice Mapping from token address to Chainlink SSA feed address (Phase 2+).
-    mapping(address => address) public tokenToFeed;
+    /// @notice Mapping from token address to Chainlink DataLink feed ID.
+    mapping(address => bytes32) public tokenFeedId;
 
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor() Ownable(msg.sender) {}
+    /**
+     * @notice Deploys the SSA Oracle Adapter with Chainlink DataLink integration.
+     * @param _verifier Address of the Chainlink DataLink verifier proxy.
+     */
+    constructor(address _verifier) Ownable(msg.sender) {
+        if (_verifier == address(0)) revert InvalidFeed();
+        verifier = IDataLinkVerifier(_verifier);
+    }
 
     /*//////////////////////////////////////////////////////////////
                            EXTERNAL FUNCTIONS
@@ -106,37 +121,96 @@ contract SSAOracleAdapter is Ownable {
     }
 
     /**
-     * @notice Set the Chainlink SSA feed address for a token (owner only).
-     * @dev Phase 2+: Wire up actual Chainlink DataLink feeds.
+     * @notice Set the Chainlink DataLink feed ID for a token (owner only).
+     * @dev Configure which DataLink feed provides SSA ratings for this token.
      * @param token Address of the stablecoin token.
-     * @param feed Address of the Chainlink SSA feed contract.
+     * @param feedId Chainlink DataLink feed ID (bytes32).
      */
-    function setFeed(address token, address feed) external onlyOwner {
-        if (feed == address(0)) revert InvalidFeed();
-        tokenToFeed[token] = feed;
-        emit FeedSet(token, feed);
+    function setFeedId(address token, bytes32 feedId) external onlyOwner {
+        if (feedId == bytes32(0)) revert InvalidFeedId();
+        tokenFeedId[token] = feedId;
+        emit FeedIdSet(token, feedId);
+    }
+
+
+
+    /**
+     * @notice Refresh rating using a verified DataLink report.
+     * @dev Pull-based DataLink flow:
+     *      1. Off-chain script fetches signed report from DataLink endpoint
+     *      2. Script submits report to this function
+     *      3. Contract verifies report signature via DataLink verifier
+     *      4. If valid, extract SSA rating and update on-chain state
+     *
+     * DataLink v4 payload structure (from verifier.verify):
+     * - feedId: bytes32
+     * - validFromTimestamp: uint32
+     * - observationsTimestamp: uint32
+     * - nativeFee: uint192
+     * - linkFee: uint192
+     * - expiresAt: uint32
+     * - benchmarkPrice: int192 (SSA rating scaled by 1e18)
+     * - marketStatus: uint32
+     *
+     * @param token Address of the stablecoin token to update.
+     * @param report Signed DataLink report from Chainlink DON.
+     */
+    function refreshRatingWithReport(
+        address token,
+        bytes calldata report
+    ) external {
+        bytes32 feedId = tokenFeedId[token];
+        if (feedId == bytes32(0)) revert InvalidFeedId();
+
+        // Verify the report using DataLink verifier proxy
+        bytes memory verified = verifier.verify(
+            report,
+            abi.encode(feedId)
+        );
+
+        // Decode DataLink v4 payload structure (all 8 fields)
+        // For SSA feeds, benchmarkPrice represents the rating (1-5) scaled by 1e18
+        (
+            bytes32 feedIdDecoded,
+            uint32 validFromTimestamp,
+            ,  // observationsTimestamp (unused)
+            ,  // nativeFee (unused)
+            ,  // linkFee (unused)
+            uint32 expiresAt,
+            int192 benchmarkPrice,
+               // marketStatus (unused)
+        ) = abi.decode(
+            verified,
+            (bytes32, uint32, uint32, uint192, uint192, uint32, int192, uint32)
+        );
+
+        // Validate feed ID matches
+        if (feedIdDecoded != feedId) revert InvalidFeedId();
+
+        // Validate report hasn't expired
+        if (block.timestamp > expiresAt) {
+            revert StaleReport();
+        }
+
+        // Reject stale reports (additional check for data freshness)
+        if (block.timestamp > validFromTimestamp + MAX_STALENESS) {
+            revert StaleReport();
+        }
+
+        // Normalize rating from benchmarkPrice (scaled by 1e18) to 1-5 scale
+        uint8 newRating = _normalizeRating(benchmarkPrice);
+
+        emit RatingUpdated(token, tokenRating[token], newRating);
+        
+        tokenRating[token] = newRating;
+        tokenRatingLastUpdated[token] = validFromTimestamp;
     }
 
     /**
-     * @notice Refresh rating by reading from Chainlink SSA feed (Phase 2+).
-     * @dev TODO: Implement Chainlink feed interface and rating normalization.
+     * @notice Refresh rating by reading from Chainlink SSA feed (legacy - not implemented).
+     * @dev Use refreshRatingWithReport() instead for DataLink pull-based integration.
      */
     function refreshRating(address /* token */) external pure {
-        // Phase 2+: Read from Chainlink SSA feed
-        // address feed = tokenToFeed[token];
-        // require(feed != address(0), "Feed not set");
-        // 
-        // (uint80 roundId, int256 answer, , uint256 updatedAt, ) = AggregatorV3Interface(feed).latestRoundData();
-        // 
-        // // Normalize SSA rating to 1-5 scale
-        // uint8 newRating = _normalizeRating(answer);
-        // 
-        // uint8 oldRating = tokenRating[token];
-        // tokenRating[token] = newRating;
-        // tokenRatingLastUpdated[token] = updatedAt;
-        // 
-        // emit RatingUpdated(token, oldRating, newRating);
-
         revert ChainlinkNotImplemented();
     }
 
@@ -145,16 +219,28 @@ contract SSAOracleAdapter is Ownable {
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @dev Normalize Chainlink SSA feed value to 1-5 rating scale.
-     * @param feedValue Raw value from Chainlink SSA feed.
-     * @return Normalized rating (1-5).
+     * @dev Normalize DataLink benchmarkPrice to 1-5 rating scale.
+     * @dev DataLink v4 SSA feeds encode rating as: rating * 1e18
+     *      Examples: 1e18 = rating 1, 3e18 = rating 3, 3.5e18 = rating 3.5
+     * @param benchmarkPrice Raw benchmarkPrice from DataLink (int192, scaled by 1e18).
+     * @return Normalized rating (1-5), truncated to integer.
      */
-    function _normalizeRating(int256 feedValue) internal pure returns (uint8) {
-        // Phase 2+: Implement actual normalization logic based on SSA feed format
-        // Example: SSA might return 1-5 directly, or need conversion
-        if (feedValue <= 0 || feedValue > 5) {
+    function _normalizeRating(int192 benchmarkPrice) internal pure returns (uint8) {
+        // Convert to uint256 for safe division
+        if (benchmarkPrice < 0) {
             revert InvalidRating();
         }
-        return uint8(uint256(feedValue));
+        uint256 absPrice = uint256(int256(benchmarkPrice));
+        
+        // Divide by 1e18 to get integer rating
+        // Example: 3e18 / 1e18 = 3
+        uint256 rating = absPrice / 1e18;
+        
+        // Validate range (1-5)
+        if (rating < 1 || rating > 5) {
+            revert InvalidRating();
+        }
+        
+        return uint8(rating);
     }
 }
