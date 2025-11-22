@@ -1,0 +1,29 @@
+{
+  "name": "sarm-protocol-datalink",
+  "version": "1.0.0",
+  "description": "Off-chain script to fetch SSA ratings from Chainlink DataLink and update SARM Protocol oracle",
+  "type": "module",
+  "scripts": {
+    "refresh:usdc": "tsx scripts/refresh-rating.ts USDC",
+    "refresh:usdt": "tsx scripts/refresh-rating.ts USDT",
+    "refresh:dai": "tsx scripts/refresh-rating.ts DAI",
+    "refresh:all": "tsx scripts/refresh-all.ts"
+  },
+  "keywords": [
+    "chainlink",
+    "datalink",
+    "uniswap",
+    "defi"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.6.1",
+    "viem": "^2.21.54"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
