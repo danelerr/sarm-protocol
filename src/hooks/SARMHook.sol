@@ -6,7 +6,6 @@ import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
-import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
@@ -146,8 +145,8 @@ contract SARMHook is BaseHook {
      * @dev Reads ratings for both tokens, computes effective rating, and enforces risk policy.
      * @param key Pool key containing token addresses.
      * @return selector Function selector to confirm execution.
-     * @return beforeSwapDelta No delta modification in Phase 1.
-     * @return feeOverride No fee override in Phase 1 (Phase 2: dynamic fees).
+     * @return beforeSwapDelta No delta modification.
+     * @return feeOverride Dynamic LP fee for this swap, encoded with OVERRIDE_FEE_FLAG.
      */
     function _beforeSwap(
         address, /* sender */
@@ -186,7 +185,7 @@ contract SARMHook is BaseHook {
             revert SwapBlocked_HighRisk();
         }
 
-        // Phase 2: Dynamic LP fees based on effective rating
+        // Calculate dynamic LP fees based on effective rating
         uint24 baseFee = _feeForRating(effectiveRating);
 
         // Emit event for analytics and monitoring

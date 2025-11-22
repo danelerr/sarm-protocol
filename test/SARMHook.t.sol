@@ -11,7 +11,6 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
-import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
 
 import {SARMHook} from "../src/hooks/SARMHook.sol";
@@ -73,7 +72,7 @@ contract SARMHookTest is Test, Deployers {
         poolKey = PoolKey({
             currency0: Currency.wrap(address(mockUSDC)),
             currency1: Currency.wrap(address(mockUSDT)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG, // Dynamic fees (Phase 2)
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG, // Dynamic fees
             tickSpacing: 60,
             hooks: hook
         });
@@ -399,7 +398,7 @@ contract SARMHookTest is Test, Deployers {
         console2.log("=== Simulating Depeg Scenario ===");
         
         // Initial state: both stablecoins are healthy
-        console2.log("Phase 1: Healthy market");
+        console2.log("Stage 1: Healthy market");
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 1);
         
@@ -421,7 +420,7 @@ contract SARMHookTest is Test, Deployers {
         console2.log("Swap 1: Success (NORMAL mode)");
 
         // USDT starts showing signs of stress
-        console2.log("\nPhase 2: USDT rating degraded to 3");
+        console2.log("\nStage 2: USDT rating degraded to 3");
         oracle.setRatingManual(address(mockUSDT), 3);
         
         // Swaps still work but in elevated risk mode
@@ -443,7 +442,7 @@ contract SARMHookTest is Test, Deployers {
         assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.ELEVATED_RISK));
 
         // USDT depegs! Rating goes to 5
-        console2.log("\nPhase 3: USDT depeg - rating = 5");
+        console2.log("\nStage 3: USDT depeg - rating = 5");
         oracle.setRatingManual(address(mockUSDT), 5);
         
         // Circuit breaker activates
@@ -465,7 +464,7 @@ contract SARMHookTest is Test, Deployers {
         console2.log("Swap 3: BLOCKED - Circuit breaker activated!");
 
         // USDT recovers
-        console2.log("\nPhase 4: USDT recovers - rating = 2");
+        console2.log("\nStage 4: USDT recovers - rating = 2");
         oracle.setRatingManual(address(mockUSDT), 2);
         
         // Normal operation resumes
@@ -488,7 +487,7 @@ contract SARMHookTest is Test, Deployers {
     }
 
     /*//////////////////////////////////////////////////////////////
-                      PHASE 2: DYNAMIC FEES TESTS
+                        DYNAMIC FEES TESTS
     //////////////////////////////////////////////////////////////*/
 
     function test_DynamicFees_LowRiskFee() public {
