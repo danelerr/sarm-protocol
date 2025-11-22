@@ -1,0 +1,25 @@
+# Foundry
+cache/
+out/
+broadcast/
+
+# Dependencies
+lib/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if needed later for frontend)
+node_modules/

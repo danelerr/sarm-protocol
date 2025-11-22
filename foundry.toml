@@ -1,0 +1,37 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+test = "test"
+script = "script"
+
+# Solidity compiler settings
+solc_version = "0.8.26"
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 1000000
+via_ir = false
+
+# Remappings for dependencies
+remappings = [
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "@uniswap/v4-core/=lib/v4-core/",
+    "forge-std/=lib/forge-std/src/",
+    "v4-periphery/=lib/v4-periphery/",
+]
+
+# Test settings
+fuzz_runs = 256
+verbosity = 2
+
+[profile.ci]
+fuzz_runs = 10000
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = true
+int_types = "long"
+multiline_func_header = "all"
+quote_style = "double"
+number_underscore = "thousands"
