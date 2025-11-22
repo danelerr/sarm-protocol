@@ -1,0 +1,41 @@
+# Chainlink Runtime Environment Configuration for SARM Protocol
+# This workflow automatically updates SSA ratings from Chainlink DataLink
+
+[workflow]
+name = "sarm-ssa-refresh"
+description = "Automated SSA rating updates for SARM Protocol stablecoins"
+version = "1.0.0"
+
+# Network configuration - Base Sepolia testnet
+[network]
+chain_id = 84532
+name = "base-sepolia"
+rpc_url = "https://sepolia.base.org"
+
+# Secrets (configure via CRE CLI or UI)
+# These should be set using: cre secrets set <KEY> <VALUE>
+[secrets]
+# DATALINK_USER = "your-datalink-username"
+# DATALINK_SECRET = "your-datalink-password"
+# PRIVATE_KEY = "your-wallet-private-key-for-signing-txs"
+
+# Environment variables (non-sensitive config)
+[env]
+# Oracle contract address
+SSA_ORACLE_ADDRESS = "0x..." # Deploy SSAOracleAdapter and set this
+
+# Token addresses on Base Sepolia
+USDC_ADDRESS = "0x..."
+USDT_ADDRESS = "0x..."
+DAI_ADDRESS = "0x..."
+
+# DataLink feed IDs (from Chainlink DataLink dashboard)
+FEED_ID_USDC = "0x..."
+FEED_ID_USDT = "0x..."
+FEED_ID_DAI = "0x..."
+
+# DataLink API endpoint
+DATALINK_API_URL = "https://api.datalink.chainlink.com/api/v1/reports/bulk"
+
+# Cron schedule (every 10 minutes)
+CRON_SCHEDULE = "0 */10 * * * *"
