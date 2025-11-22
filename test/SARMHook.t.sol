@@ -77,7 +77,8 @@ contract SARMHookTest is Test, Deployers {
         // Deploy SARM Hook
         // Note: Hook address must satisfy Uniswap v4 address requirements
         // For testing, we deploy directly; in production, CREATE2 is used
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+        // Hook requires both BEFORE_INITIALIZE_FLAG and BEFORE_SWAP_FLAG
+        uint160 flags = uint160(Hooks.BEFORE_INITIALIZE_FLAG | Hooks.BEFORE_SWAP_FLAG);
         address hookAddress = address(flags);
         
         // Deploy hook at the expected address using vm.etch (for testing)
@@ -228,9 +229,9 @@ contract SARMHookTest is Test, Deployers {
     }
 
     function test_SARMHook_SwapBlockedHighRisk() public {
-        // Set high risk rating (4+)
+        // Set high risk rating (5+)
         oracle.setRatingManual(address(mockUSDC), 2);
-        oracle.setRatingManual(address(mockUSDT), 4);
+        oracle.setRatingManual(address(mockUSDT), 5);
 
         // Attempt swap - should revert
         vm.prank(BOB);
@@ -319,9 +320,9 @@ contract SARMHookTest is Test, Deployers {
     function test_SARMHook_EffectiveRatingUsesMax() public {
         // Set different ratings - effective rating should be the maximum
         oracle.setRatingManual(address(mockUSDC), 2);
-        oracle.setRatingManual(address(mockUSDT), 4);
+        oracle.setRatingManual(address(mockUSDT), 5);
 
-        // Swap should be blocked because max(2, 4) = 4 >= frozenThreshold
+        // Swap should be blocked because max(2, 5) = 5 >= frozenThreshold
         vm.prank(BOB);
         vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(
@@ -507,13 +508,13 @@ contract SARMHookTest is Test, Deployers {
     //////////////////////////////////////////////////////////////*/
 
     function test_DynamicFees_LowRiskFee() public {
-        // Set low risk ratings (1-2) -> should get 0.05% fee (500)
-        oracle.setRatingManual(address(mockUSDC), 1);
+        // Set low risk ratings (1-2) -> should get 0.005% fee (50)
+        oracle.setRatingManual(address(mockUSDC), 2);
         oracle.setRatingManual(address(mockUSDT), 2);
 
-        // Expect FeeOverrideApplied event with 500 (0.05%)
-        vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 2, 500);
+        // Expect FeeOverrideApplied event with 50 (0.005%)
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolId, 2, 50);
 
         vm.prank(BOB);
         swapRouter.swap(
@@ -534,13 +535,13 @@ contract SARMHookTest is Test, Deployers {
     }
 
     function test_DynamicFees_ModerateRiskFee() public {
-        // Set moderate risk rating (3) -> should get 0.10% fee (1000)
-        oracle.setRatingManual(address(mockUSDC), 1);
+        // Set moderate risk rating (3) -> should get 0.01% fee (100)
+        oracle.setRatingManual(address(mockUSDC), 3);
         oracle.setRatingManual(address(mockUSDT), 3);
 
-        // Expect FeeOverrideApplied event with 1000 (0.10%)
-        vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 3, 1000);
+        // Expect FeeOverrideApplied event with 100 (0.01%)
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolId, 3, 100);
 
         vm.prank(BOB);
         swapRouter.swap(
@@ -567,9 +568,9 @@ contract SARMHookTest is Test, Deployers {
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 1);
 
-        console2.log("Rating 1: Fee should be 500 (0.05%)");
+        console2.log("Rating 1: Fee should be 50 (0.005%)");
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 1, 500);
+        emit FeeOverrideApplied(poolId, 1, 50);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -589,9 +590,9 @@ contract SARMHookTest is Test, Deployers {
         // Increase to rating 2 (still low risk)
         oracle.setRatingManual(address(mockUSDT), 2);
 
-        console2.log("Rating 2: Fee should still be 500 (0.05%)");
+        console2.log("Rating 2: Fee should still be 50 (0.005%)");
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 2, 500);
+        emit FeeOverrideApplied(poolId, 2, 50);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -611,9 +612,9 @@ contract SARMHookTest is Test, Deployers {
         // Increase to rating 3 (elevated risk)
         oracle.setRatingManual(address(mockUSDT), 3);
 
-        console2.log("Rating 3: Fee should double to 1000 (0.10%)");
+        console2.log("Rating 3: Fee should double to 100 (0.01%)");
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 3, 1000);
+        emit FeeOverrideApplied(poolId, 3, 100);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -639,7 +640,7 @@ contract SARMHookTest is Test, Deployers {
 
         // First swap
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 2, 500);
+        emit FeeOverrideApplied(poolId, 2, 50);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -658,7 +659,7 @@ contract SARMHookTest is Test, Deployers {
 
         // Second swap - event should be emitted again
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 2, 500);
+        emit FeeOverrideApplied(poolId, 2, 50);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -677,9 +678,9 @@ contract SARMHookTest is Test, Deployers {
     }
 
     function test_DynamicFees_HighRiskNoFeeApplied() public {
-        // Set high risk rating (4) - swap should be blocked before fee is applied
+        // Set high risk rating (5) - swap should be blocked before fee is applied
         oracle.setRatingManual(address(mockUSDC), 2);
-        oracle.setRatingManual(address(mockUSDT), 4);
+        oracle.setRatingManual(address(mockUSDT), 5);
 
         // Swap should revert, so FeeOverrideApplied event should NOT be emitted
         vm.prank(BOB);

@@ -34,6 +34,7 @@ contract SARMHook is BaseHook {
 
     error SwapBlocked_HighRisk();
     error TokenNotRated();
+    error DynamicFeeRequired();
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -118,11 +119,11 @@ contract SARMHook is BaseHook {
 
     /**
      * @notice Returns the hook's permissions.
-     * @dev We implement beforeSwap to check ratings before allowing swaps.
+     * @dev We implement beforeInitialize to enforce dynamic fees and beforeSwap for risk checks.
      */
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
-            beforeInitialize: false,
+            beforeInitialize: true,
             afterInitialize: false,
             beforeAddLiquidity: false,
             afterAddLiquidity: false,
@@ -142,6 +143,24 @@ contract SARMHook is BaseHook {
     /*//////////////////////////////////////////////////////////////
                             HOOK FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    /**
+     * @notice Called before a pool is initialized.
+     * @dev Enforces that the pool is configured with DYNAMIC_FEE_FLAG.
+     *      This is critical because SARM needs to override fees based on risk ratings.
+     */
+    function _beforeInitialize(
+        address,              /* sender */
+        PoolKey calldata key,
+        uint160               /* sqrtPriceX96 */
+    ) internal override returns (bytes4) {
+        // Require that the pool uses DYNAMIC_FEE_FLAG
+        if ((key.fee & LPFeeLibrary.DYNAMIC_FEE_FLAG) == 0) {
+            revert DynamicFeeRequired();
+        }
+
+        return BaseHook.beforeInitialize.selector;
+    }
 
     /**
      * @notice Called before a swap is executed.
