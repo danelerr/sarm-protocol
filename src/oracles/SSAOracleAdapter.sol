@@ -163,22 +163,19 @@ contract SSAOracleAdapter is Ownable {
         if (feedId == bytes32(0)) revert InvalidFeedId();
 
         // Verify the report using DataLink verifier proxy
-        bytes memory verified = verifier.verify(
-            report,
-            abi.encode(feedId)
-        );
+        bytes memory verified = verifier.verify(report, abi.encode(feedId));
 
         // Decode DataLink v4 payload structure (all 8 fields)
         // For SSA feeds, benchmarkPrice represents the rating (1-5) scaled by 1e18
         (
             bytes32 feedIdDecoded,
             uint32 validFromTimestamp,
-            ,  // observationsTimestamp (unused)
-            ,  // nativeFee (unused)
-            ,  // linkFee (unused)
+            uint32 _observationsTimestamp,
+            uint192 _nativeFee,
+            uint192 _linkFee,
             uint32 expiresAt,
             int192 benchmarkPrice,
-               // marketStatus (unused)
+            uint32 _marketStatus
         ) = abi.decode(
             verified,
             (bytes32, uint32, uint32, uint192, uint192, uint32, int192, uint32)
@@ -188,22 +185,19 @@ contract SSAOracleAdapter is Ownable {
         if (feedIdDecoded != feedId) revert InvalidFeedId();
 
         // Validate report hasn't expired
-        if (block.timestamp > expiresAt) {
-            revert StaleReport();
-        }
+        if (block.timestamp > expiresAt) revert StaleReport();
 
         // Reject stale reports (additional check for data freshness)
-        if (block.timestamp > validFromTimestamp + MAX_STALENESS) {
-            revert StaleReport();
-        }
+        if (block.timestamp > validFromTimestamp + MAX_STALENESS) revert StaleReport();
 
-        // Normalize rating from benchmarkPrice (scaled by 1e18) to 1-5 scale
+        // Update rating
+        uint8 oldRating = tokenRating[token];
         uint8 newRating = _normalizeRating(benchmarkPrice);
 
-        emit RatingUpdated(token, tokenRating[token], newRating);
-        
         tokenRating[token] = newRating;
         tokenRatingLastUpdated[token] = validFromTimestamp;
+
+        emit RatingUpdated(token, oldRating, newRating);
     }
 
     /**
