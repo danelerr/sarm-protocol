@@ -68,9 +68,9 @@ contract SARMHook is BaseHook {
     //////////////////////////////////////////////////////////////*/
 
     enum RiskMode {
-        NORMAL,         // Ratings 1-2: Normal operation
-        ELEVATED_RISK,  // Rating 3: Higher fees
-        FROZEN          // Ratings 4-5: Swaps blocked
+        NORMAL,         // Ratings 1-2 (Excellent): 0.005% fee
+        ELEVATED_RISK,  // Ratings 3-4 (Good-Medium): 0.01%-0.02% fees
+        FROZEN          // Rating 5 (High): 0.04% fee or swaps blocked
     }
 
     struct RiskConfig {
@@ -102,10 +102,13 @@ contract SARMHook is BaseHook {
     constructor(IPoolManager _poolManager, SSAOracleAdapter _oracle) BaseHook(_poolManager) {
         oracle = _oracle;
         
-        // Default thresholds
+        // Default thresholds:
+        // - Ratings 1-2: NORMAL (Excellent)
+        // - Ratings 3-4: ELEVATED_RISK (Good-Medium)
+        // - Rating 5: FROZEN (High risk)
         riskConfig = RiskConfig({
             elevatedRiskThreshold: 3,
-            frozenThreshold: 4
+            frozenThreshold: 5
         });
     }
 
@@ -227,18 +230,21 @@ contract SARMHook is BaseHook {
 
     /**
      * @dev Map an effective rating to a LP fee (in hundredths of a bip).
-     * Example:
-     *  - ratings 1-2: 0.05% (500)
-     *  - rating 3:    0.10% (1000)
-     *  - rating 4+:   0.30% (3000) [though 4+ is frozen in our logic]
+     * New SSA-aligned fee bands:
+     *  - Ratings 1-2 (Excellent): 0.005% (50)
+     *  - Rating 3 (Good):         0.01% (100)
+     *  - Rating 4 (Medium):       0.02% (200)
+     *  - Rating 5 (High):         0.04% (400) [though 5 triggers FROZEN]
      */
     function _feeForRating(uint8 effectiveRating) internal pure returns (uint24) {
         if (effectiveRating <= 2) {
-            return 500;   // 0.05% - Low risk, competitive fees
+            return 50;    // 0.005% - Excellent (1.0-2.0 SSA range)
         } else if (effectiveRating == 3) {
-            return 1000;  // 0.10% - Elevated risk, moderate fees
+            return 100;   // 0.01% - Good (2.1-3.0 SSA range)
+        } else if (effectiveRating == 4) {
+            return 200;   // 0.02% - Medium (3.1-4.0 SSA range)
         } else {
-            return 3000;  // 0.30% - High risk (probably unused if 4+ is frozen)
+            return 400;   // 0.04% - High (4.1-5.0 SSA range, normally frozen)
         }
     }
 }

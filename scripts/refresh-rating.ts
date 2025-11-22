@@ -13,12 +13,16 @@
  * 5. Oracle updates rating in storage
  */
 
-import { createWalletClient, createPublicClient, http, type Address, type Hex } from 'viem';
+import { createWalletClient, createPublicClient, http, decodeEventLog, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { baseSepolia } from 'viem/chains';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
+
+// Token symbol types
+const TOKEN_SYMBOLS = ['USDC', 'USDT', 'DAI'] as const;
+type TokenSymbol = (typeof TOKEN_SYMBOLS)[number];
 
 // Configuration
 const config = {
@@ -53,6 +57,16 @@ if (!config.oracleAddress) {
 }
 if (!config.datalinkUser || !config.datalinkSecret) {
   throw new Error('DATALINK_USER and DATALINK_SECRET are required in .env file');
+}
+
+// Validate token configurations
+for (const [symbol, tokenConfig] of Object.entries(config.tokens)) {
+  if (!tokenConfig.address) {
+    throw new Error(`${symbol}_ADDRESS is required in .env file`);
+  }
+  if (!tokenConfig.feedId || tokenConfig.feedId === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+    throw new Error(`FEED_ID_${symbol} is required in .env file`);
+  }
 }
 
 // SSAOracleAdapter ABI (minimal - only what we need)
@@ -136,7 +150,7 @@ async function fetchDatalinkReport(feedId: Hex): Promise<Hex> {
 /**
  * Submit report to on-chain oracle
  */
-async function refreshRating(tokenSymbol: 'USDC' | 'USDT' | 'DAI') {
+async function refreshRating(tokenSymbol: TokenSymbol) {
   console.log(`\n[REFRESH] Refreshing ${tokenSymbol} rating via DataLink\n`);
 
   const tokenConfig = config.tokens[tokenSymbol];
@@ -187,18 +201,21 @@ async function refreshRating(tokenSymbol: 'USDC' | 'USDT' | 'DAI') {
     // Parse logs to see the new rating
     const logs = receipt.logs;
     for (const log of logs) {
+      // Filter by oracle address to avoid decoding unrelated events
+      if (log.address.toLowerCase() !== config.oracleAddress.toLowerCase()) continue;
+
       try {
-        // Use decodeEventLog from viem instead of parseEventLogs
-        const decoded = await import('viem').then(({ decodeEventLog }) => 
-          decodeEventLog({
-            abi: oracleAbi,
-            data: log.data,
-            topics: log.topics,
-          })
-        );
-        console.log(`\n[UPDATE] Rating Update:`);
-        console.log(`   Old Rating: ${decoded.args.oldRating}`);
-        console.log(`   New Rating: ${decoded.args.newRating}`);
+        const decoded = decodeEventLog({
+          abi: oracleAbi,
+          data: log.data,
+          topics: log.topics,
+        });
+
+        if (decoded.eventName === 'RatingUpdated') {
+          console.log(`\n[UPDATE] Rating Update:`);
+          console.log(`   Old Rating: ${decoded.args.oldRating}`);
+          console.log(`   New Rating: ${decoded.args.newRating}`);
+        }
       } catch {
         // Not our event, skip
       }
@@ -209,9 +226,9 @@ async function refreshRating(tokenSymbol: 'USDC' | 'USDT' | 'DAI') {
 }
 
 // Main execution
-const tokenSymbol = process.argv[2]?.toUpperCase() as 'USDC' | 'USDT' | 'DAI';
+const tokenSymbol = process.argv[2]?.toUpperCase() as TokenSymbol;
 
-if (!tokenSymbol || !['USDC', 'USDT', 'DAI'].includes(tokenSymbol)) {
+if (!tokenSymbol || !TOKEN_SYMBOLS.includes(tokenSymbol)) {
   console.error('Usage: pnpm refresh:usdc | pnpm refresh:usdt | pnpm refresh:dai');
   process.exit(1);
 }
@@ -221,7 +238,7 @@ refreshRating(tokenSymbol)
     console.log('\n[DONE] Done!');
     process.exit(0);
   })
-  .catch((error) => {
-    console.error('\n[ERROR] Error:', error.message);
+  .catch((error: any) => {
+    console.error('\n[ERROR] Error:', error?.message ?? error);
     process.exit(1);
   });

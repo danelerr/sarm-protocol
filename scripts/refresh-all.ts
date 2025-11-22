@@ -26,7 +26,10 @@ async function refreshAll() {
       console.log(stdout);
       if (stderr) console.error(stderr);
     } catch (error: any) {
-      console.error(`[ERROR] Failed to refresh ${token}:`, error.message);
+      console.error(
+        `[ERROR] Failed to refresh ${token}:`,
+        error?.message ?? error
+      );
     }
   }
 
@@ -35,7 +38,7 @@ async function refreshAll() {
 
 refreshAll()
   .then(() => process.exit(0))
-  .catch((error) => {
-    console.error('[ERROR] Error:', error.message);
+  .catch((error: any) => {
+    console.error('[ERROR] Error:', error?.message ?? error);
     process.exit(1);
   });
