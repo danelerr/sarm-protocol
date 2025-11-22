@@ -101,20 +101,22 @@ forge test --gas-report
 forge coverage
 ```
 
-## Implementation Phases
+## Implementation Status
 
-### Phase 1: Core Hook + Manual Ratings ✅
+### ✅ Core Features (Complete)
 - [x] SSAOracleAdapter with manual rating setter
 - [x] SARMHook with beforeSwap logic
 - [x] Circuit breaker for high-risk ratings (FROZEN mode)
 - [x] Risk mode transitions (NORMAL → ELEVATED_RISK → FROZEN)
-- [x] Comprehensive Forge tests
+- [x] Dynamic risk-adjusted fees with override mechanism
+- [x] Event emission for analytics (RiskCheck, RiskModeChanged, FeeOverrideApplied)
+- [x] Comprehensive Forge tests (17/17 passing)
 
-### Phase 2: Dynamic Fees ✅
-- [x] Fee tier calculation based on ratings
-- [x] Dynamic fee application in beforeSwap with override flag
-- [x] Event emission for analytics (FeeOverrideApplied)
-- [x] Tests for fee progression with risk levels
+### 🚧 Future Enhancements
+- [ ] Chainlink SSA feed integration for automated rating updates
+- [ ] The Graph subgraph for event indexing and analytics
+- [ ] Risk dashboard UI showing ratings and fee history
+- [ ] LP analytics dashboard (fees earned by risk level)
 
 **Dynamic Risk-Adjusted Fees:**
 
@@ -144,18 +146,6 @@ SARM Protocol implements dynamic LP fees that adjust automatically based on the 
 - **Market Signals**: Fee changes provide real-time risk signals to traders
 - **Capital Efficiency**: Low fees on safe pairs maximize trading volume
 - **Circuit Breaker Integration**: Seamlessly works with risk gating system
-
-### Phase 3: Chainlink Integration (TODO)
-- [ ] Chainlink SSA feed interface
-- [ ] refreshRating() implementation with real feeds
-- [ ] Mock Chainlink feed for tests
-- [ ] Automated rating updates
-
-### Phase 4: Analytics + Frontend (TODO)
-- [ ] The Graph subgraph for event indexing
-- [ ] RiskCheck and FeeOverrideApplied event tracking
-- [ ] Risk dashboard UI showing ratings and fee history
-- [ ] LP analytics (fees earned by risk level)
 
 ## Risk Rating Scale
 
@@ -187,7 +177,7 @@ LP fees adjust in real-time based on S&P Global credit ratings, ensuring proper 
 All risk assessments and fee changes emit events for on-chain analytics and The Graph indexing.
 
 ### 🔗 Institutional Data
-Integrates S&P Global SSA ratings via Chainlink feeds (Phase 3), bringing institutional-grade risk assessment to DeFi.
+Integrates S&P Global SSA ratings via Chainlink feeds (planned), bringing institutional-grade risk assessment to DeFi.
 
 ## License
 
