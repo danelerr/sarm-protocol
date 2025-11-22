@@ -1,0 +1,1197 @@
+# ETHGlobal Buenos Aires 2025 - Sponsor Technologies Guide for AI Agents
+
+> Last Updated: November 17, 2025
+> Purpose: Help Frutero Club builders choose the right technologies and sponsor bounties based on their project ideas
+> Total Prize Pool: $340,500+
+
+---
+
+## 🎯 HOW TO USE THIS FILE
+
+When a developer shares their project idea, analyze it against these categories:
+1. **Core blockchain infrastructure** needed
+2. **Data & oracles** requirements  
+3. **Cross-chain** capabilities needed
+4. **Privacy & security** needs
+5. **AI/Agent** integration opportunities
+6. **User experience** enhancements
+7. **Storage & compute** requirements
+
+Then recommend relevant sponsors with their prize amounts and qualification requirements.
+
+---
+
+## 📋 QUICK REFERENCE BY USE CASE
+
+### Cross-Chain / Interoperability
+- **LayerZero** ($20k) - Omnichain messaging, OFTs
+- **Hyperlane** ($10k) - Permissionless interoperability
+- **Avail** ($10k) - Nexus SDK for unified liquidity
+- **Wormhole** (via Aztec) - Cross-chain messaging
+- **Chainlink CCIP** - Cross-chain transfers
+
+### Data & Oracles
+- **Pyth Network** ($20k) - Real-time price feeds, randomness
+- **Chainlink** ($15k) - Price feeds, VRF, automation, functions
+- **Flare Network** ($10k) - FTSO, FDC, secure random, FAssets
+- **The Graph** ($10k) - Subgraphs, Token API, Amp datasets
+- **sqd** ($5k) - Pipes SDK for data pipelines
+
+### DeFi Infrastructure
+- **1inch** ($20k) - Aqua App, swap APIs
+- **Uniswap** ($20k) - v4 Hooks for stable/volatile pairs
+- **Symbiotic** ($10k) - Relay SDK, stake-backed attestations
+- **Yellow** ($10k) - State channels, ERC-7824
+
+### Payments & Stablecoins
+- **Circle** ($10k) - USDC/EURC on Arc, Gateway, Wallets
+- **Polygon** ($10k) - x402 agentic payments
+- **Circles** ($5k) - Social money, P2P loans
+- **x402 Protocol** - Micropayments (multiple sponsors)
+
+### AI & Agents
+- **Coinbase CDP** ($20k) - Embedded/Server wallets for agents
+- **Nethermind** ($10k) - ChaosChain, AuditAgent, AgentArena
+- **Hedera** ($10k) - Agent Kit with A2A/AP2
+- **Oasis** ($10k) - ROFL for AI agents in TEEs
+- **0G** ($10k) - AI compute network
+
+### Privacy & Security
+- **Aztec** ($5k) - Privacy-native L2, ZK proofs
+- **Self** ($10k) - ZK identity, age verification
+- **vlayer** ($10k) - zkTLS, Web Proofs
+- **Oasis** ($10k) - TEE-based confidential compute
+
+### Storage & Compute
+- **Filecoin/Protocol Labs** ($20k) - Synapse SDK, decentralized storage
+- **Fluence** ($10k) - Cloudless GPU/CPU compute
+- **0G** ($10k) - Decentralized AI storage & compute
+
+### Identity & Social
+- **World** ($20k) - World ID, MiniApps for 23M users
+- **ENS** ($10k) - Naming, subdomains, profiles
+- **Self** ($10k) - ZK passport verification
+- **XMTP** ($5k) - Decentralized messaging, chat agents
+
+### Gaming & Consumer
+- **Chiliz** ($10k) - Sports & entertainment chain
+- **Saga** ($10k) - Gasless L1 chainlets
+- **Ronin** ($5k) - Gaming chain with 800K MAU
+
+### Developer Tools
+- **Hardhat** ($10k) - Hardhat 3 for testing/simulation
+- **Privy** ($5k) - Wallet infrastructure, gas sponsorship
+- **Curvegrid** ($5k) - MultiBaas backend
+- **Octav** ($10k) - Blockchain data for asset managers
+
+### Layer 1s & Layer 2s
+- **Celo** ($10k) - L2 with MiniPay (10M+ users)
+- **Zircuit** ($8.5k) - ZK rollup with AI security
+- **Citrea** ($10k) - ZK rollup on Bitcoin
+- **Rootstock** ($5k) - Bitcoin sidechain
+- **Polygon** ($10k) - L2 with agentic payments
+
+### Specialized Infrastructure
+- **EVVM** ($20k) - Virtual blockchains via smart contracts
+- **Symbiotic** ($10k) - Universal staking protocol
+- **Babylon** ($5k) - Bitcoin staking
+- **Espresso** ($5k) - Fast finality for rollups
+
+---
+
+## 🏆 DETAILED SPONSOR BREAKDOWN
+
+### LayerZero ($20,000)
+**What they do:** Messaging protocol connecting 150+ blockchains
+**Key tech:** Omnichain Fungible Tokens (OFTs), cross-chain messaging
+**Perfect for:** Multi-chain DeFi, NFT marketplaces, cross-chain games
+**Prize tracks:**
+- Best Omnichain Implementation: $13k (1st), $6.25k (2nd)
+- Best Developer Feedback: $750
+
+**Qualification requirements:**
+1. Interact with LayerZero Endpoint contract
+2. Extend base contract logic (OApp/OFT) - must add new functionality
+3. Working demo focused on core contract
+4. Submit feedback form
+
+**Use cases:**
+- Cross-chain token transfers without wrapping
+- Multi-chain DeFi protocols
+- Omnichain NFT collections
+- Cross-chain governance systems
+
+---
+
+### Pyth Network ($20,000)
+**What they do:** Real-time financial data for 100+ blockchains
+**Key tech:** Pull price feeds, Pyth Entropy (randomness)
+**Perfect for:** DeFi protocols, games, prediction markets
+**Prize tracks:**
+- Most Innovative Pull Price Feeds: $10k (split among 5 teams)
+- Pyth Entropy Pool Prize: $5k (split evenly)
+- Best use of Pyth Entropy: $5k (up to 4 teams get $1.25k)
+
+**Qualification requirements (Price Feeds):**
+1. Pull/fetch data from Hermes
+2. Update on-chain using updatePriceFeeds
+3. Consume the price
+
+**Qualification requirements (Entropy):**
+1. Consume random number generated by Pyth
+2. Raise PR in pyth-examples repo with code + README
+
+**Use cases:**
+- DeFi lending/borrowing with accurate prices
+- On-chain games needing randomness
+- Options/derivatives protocols
+- Prediction markets
+
+---
+
+### 1inch ($20,000)
+**What they do:** DeFi aggregation and swap infrastructure
+**Key tech:** Aqua (new release), Swap APIs, Limit orders
+**Perfect for:** DEX aggregators, trading bots, DeFi apps
+**Prize tracks:**
+- Build an Aqua App: $17k (5 prizes)
+- Utilize 1inch APIs: $3k (up to 3 teams get $1k)
+
+**Qualification requirements (APIs):**
+- Use at least one 1inch API meaningfully
+- Proper Git commit history (no single commits on final day)
+
+**Use cases:**
+- Advanced trading interfaces
+- Portfolio rebalancing tools
+- Automated trading strategies
+- Price feed integrations
+
+---
+
+### World ($20,000)
+**What they do:** Identity protocol with 23M World App users
+**Key tech:** MiniKit SDK, World ID, World Chain
+**Perfect for:** Consumer apps, identity verification, viral apps
+**Prize tracks:**
+- Best Mini App: $17k (1st: $6.5k, 2nd: $4.5k, 3rd: $2k, 4 honorable mentions)
+- World Pool Prize: $3k (split evenly)
+
+**Qualification requirements:**
+- Build Mini App with MiniKit
+- Integrate MiniKit SDK Commands
+- If on-chain, deploy to World Chain
+- NOT gambling/chance-based
+- Proof validation in web backend or smart contract
+
+**Use cases:**
+- Viral consumer apps for 23M users
+- Identity-gated experiences
+- Sybil-resistant airdrops
+- Human verification flows
+
+---
+
+### Uniswap Foundation ($20,000)
+**What they do:** Uniswap v4 with customizable Hooks
+**Key tech:** Smart contract hooks for fees, liquidity, trading logic
+**Perfect for:** Advanced DeFi protocols, AMM innovations
+**Prize tracks:**
+- Stable-Asset Hooks: $10k
+- Volatile-Pairs Hooks: $10k
+
+**Qualification requirements:**
+- TxID transactions (testnet/mainnet)
+- GitHub repo, README, demo instructions
+- Demo video (max 3 min)
+- UI not required, but functional code required
+
+**Use cases:**
+- Synthetic lending protocols
+- Credit-backed trading
+- Optimized stable AMM logic
+- LVR mitigation for volatile pairs
+- Dynamic fee structures
+
+---
+
+### Coinbase Developer Platform ($20,000)
+**What they do:** Unified crypto infrastructure APIs
+**Key tech:** Embedded Wallets, Server Wallets (AI agents), Trade API, x402
+**Perfect for:** AI agents, onchain apps, payment systems
+**Prize tracks:**
+- Build Great Onchain App: $20k (up to 4 teams get $5k)
+
+**Qualification requirements:**
+- Use at least one CDP tool
+- Bonus for multiple products
+- Share on X tagging @CoinbaseDev
+- Give high-quality feedback
+
+**Tools available:**
+- CDP Embedded Wallets (end-users)
+- CDP Server Wallets (AI agents)
+- CDP Trade API (swaps)
+- CDP Data APIs (SQL, balances, webhooks)
+- x402 with CDP Facilitator
+- Coinbase Pay
+
+**Use cases:**
+- AI agents with crypto wallets
+- x402 micropayment APIs
+- Autonomous trading bots
+- Onchain payment acceptance
+
+---
+
+### Protocol Labs / Filecoin ($20,000)
+**What they do:** Decentralized storage network
+**Key tech:** Synapse SDK, Filecoin Pin, hot storage
+**Perfect for:** Data-heavy apps, NFTs, AI training data
+**Prize tracks:**
+- Best Storage Innovation: $10k
+- Best dApps Powered by Filecoin: $10k
+
+**Qualification requirements:**
+1. Use Synapse SDK or Filecoin Pin meaningfully
+2. Deploy to Filecoin Calibration Testnet
+3. Working demo (frontend or CLI)
+4. Open-source on GitHub
+
+**Use cases:**
+- Decentralized file sharing
+- Dataset marketplaces
+- NFT metadata storage
+- AI training data storage
+- On-chain file publishing
+
+---
+
+### EVVM ($20,000)
+**What they do:** Virtual blockchains via smart contracts
+**Key tech:** MATE Metaprotocol, async nonces, executors
+**Perfect for:** Experimental blockchain designs, sandboxing
+**Prize tracks:**
+- Best MATE Metaprotocol Integration: $7k
+- Novel Fisher/Relayer: $5k
+- Custom Service/EVVM Chain: $5k
+- Use MATE Metaprotocol: $2.5k pool
+- Feedback: $500 (5 teams get $100)
+
+**Deployed on Sepolia:**
+- EVVM: 0xF817e9ad82B4a19F00dA7A248D9e556Ba96e6366
+- MATE Staking: 0x8eB2525239781e06dBDbd95d83c957C431CF2321
+- NameService: 0x8038e87dc67D87b31d890FD01E855a8517ebfD24
+
+**Use cases:**
+- Blockchain-in-blockchain experiments
+- Testing new opcodes/economic models
+- Vertical scalability solutions
+- Sandboxed environments
+- Innovative ideas
+- Gasless UI experience 
+- Full control of the Dapps deployed
+
+---
+
+### Chainlink ($15,000)
+**What they do:** Decentralized oracle network
+**Key tech:** Price Feeds, VRF, Automation, Functions, CRE
+**Perfect for:** DeFi, gaming (randomness), automated systems
+**Prize tracks:**
+- Connect the World: $6k (3 teams get $2k)
+- Best CRE Workflow: $9k (3 teams get $3k)
+
+**Qualification requirements:**
+- Must use Chainlink to make state change on blockchain
+- Bonus for multiple services
+- Explain usage in project description
+
+**Use cases:**
+- Price-dependent DeFi logic
+- Verifiable randomness for games
+- Automated protocol operations
+- Cross-chain workflows with CRE
+
+---
+
+### Chiliz ($10,000)
+**What they do:** Sports & entertainment L1 blockchain
+**Key tech:** EVM-compatible, Spicy Testnet
+**Perfect for:** Fan engagement, sports betting, DAOs
+**Prize tracks:**
+- Future of Fan Ownership: $5k
+- SportsFi & Real-World Yield: $5k
+
+**Qualification requirements:**
+- Deploy contracts on Spicy Testnet or Chiliz Mainnet
+- Transactions happening on-chain
+
+**Use cases:**
+- Tokenized memberships
+- Dynamic NFTs tracking fan stats
+- Fan-governed DAOs
+- Sports prediction markets
+- Athlete-backed tokens
+
+---
+
+### Oasis Protocol ($10,000)
+**What they do:** Verifiable confidential compute
+**Key tech:** ROFL (Runtime Off-chain Logic), Sapphire (confidential EVM)
+**Perfect for:** Privacy apps, AI agents, secure oracles
+**Prize tracks:**
+- Build with Oasis: $10k (5 prizes)
+
+**Qualification requirements:**
+- Demo video (max 3 min)
+- Text description
+- Open-source GitHub
+- Way to test project
+- Complete submission form
+
+**Use cases:**
+- Secure oracles in TEEs
+- AI agents with private data
+- LLM chatbots on-chain
+- Privacy-preserving DeFi
+- Confidential bridges
+
+---
+
+### Nethermind ($10,000)
+**What they do:** Ethereum infrastructure & security
+**Key tech:** AuditAgent (AI audits), ChaosChain (verifiable agents), AgentArena
+**Perfect for:** Security tools, AI agents, verifiable compute
+**Prize tracks:**
+- AuditAgent Challenge: $500
+- Agentic Frontier: $2.5k
+- AgentArena: $3k
+- Triple-Verified Stack: $4k
+
+**Qualification requirements (ChaosChain):**
+1. Use ChaosChain SDK (Python/TypeScript)
+2. Implement x402 payment flow
+3. Show verifiability link (AP2, process integrity, ERC-8004)
+4. 2-3 min demo + GitHub
+
+**Use cases:**
+- AI-powered security agents
+- Verifiable AI trading agents
+- Autonomous governance systems
+- Cryptographically proven agent actions
+
+---
+
+### Flare Network ($10,000)
+**What they do:** Data protocols enshrined on-chain
+**Key tech:** FTSO (price feeds), FDC (Web2/Web3 data), FAssets (XRP bridge)
+**Perfect for:** Data-driven apps, cross-chain XRP DeFi
+**Prize tracks:**
+- Main Track: $8k
+- Bonus Track (external data/cross-chain): $2k (2 teams)
+
+**Qualification requirements:**
+- Use at least one Flare protocol (FTSO/FDC/Random/FAssets)
+- Address real-world problems
+- Add feedback in README
+
+**Use cases:**
+- DeFi with real-world data
+- XRP-powered DeFi via FAssets
+- Cross-chain apps secured by Flare
+- Apps using Web2 API data on-chain
+
+---
+
+### Hedera ($10,000)
+**What they do:** High-throughput EVM blockchain (10k+ TPS, 3s finality)
+**Key tech:** Hedera Agent Kit, Token Service, hashgraph consensus
+**Perfect for:** AI agents, high-performance apps
+**Prize tracks:**
+- Hedera Agent Kit & Google A2A: $4k
+- Hedera x Lit Protocol Vincent: $1k
+- Best Plugin for Agent Kit: $1k
+- EVM Innovator Track: $4k
+
+**Qualification requirements (Agent Kit):**
+1. Multi-agent A2A communication
+2. Use Hedera Agent Kit + adaptors
+3. Open-source code + demo video
+
+**Use cases:**
+- AI agents negotiating via A2A/AP2
+- Cross-chain DeFi with oracles/bridges
+- High-frequency trading bots
+- Agent-powered automation
+
+---
+
+### Ledger ($10,000)
+**Details coming soon**
+
+---
+
+### Avail ($10,000)
+**What they do:** Unifying cross-chain liquidity & intents
+**Key tech:** Avail Nexus SDK (nexus-core, nexus-widgets, nexus-elements)
+**Perfect for:** Cross-chain apps, unified liquidity
+**Prize tracks:**
+- Build Unchained Apps: $4.5k
+- Best DeFi/Payments App: $5k
+- Developer Feedback: $500
+
+**Qualification requirements:**
+- README explaining Nexus SDK usage
+- Meaningful use of Nexus SDK
+- Demo of cross-chain intent interaction
+- Bonus for "Bridge & Execute"
+
+**Use cases:**
+- Unified gas refuel across chains
+- Intent playgrounds/explorers
+- Cross-chain yield optimization
+- Unified stablecoin experiences
+
+---
+
+### Polygon ($10,000)
+**What they do:** Polygon PoS network for payments/RWAs
+**Key tech:** x402 agentic payments, AutoPay extension
+**Perfect for:** AI agents, micropayments, payment systems
+**Prize tracks:**
+- Best Use of Agentic Payments: $10k (5 prizes)
+
+**Qualification requirements:**
+- Deploy to Polygon Network
+- GitHub repo with README
+- Demo video
+
+**Focus areas:**
+1. x402 + AI/Agentic apps
+2. x402 protocol expansions (privacy, batching, refunds, fraud)
+
+**Use cases:**
+- AI agents with wallets
+- x402 micropayment APIs
+- LLM wallet integrations
+- Autonomous payment systems
+
+---
+
+### Circle ($10,000)
+**What they do:** USDC/EURC infrastructure & Arc L1
+**Key tech:** Arc blockchain, Gateway, Bridge Kit, Circle Wallets
+**Perfect for:** Stablecoin apps, cross-chain transfers, treasury automation
+**Prize tracks:**
+- Smart Contracts on Arc: $4k
+- Crosschain with Bridge Kit: $2k
+- Treasury Operations: $2k
+- AI Agent Wallet: $2k
+
+**Qualification requirements:**
+- Functional MVP + architecture diagram
+- Video demo + presentation
+- GitHub/Replit repo
+
+**Use cases:**
+- Programmable stablecoin logic
+- Cross-chain USDC transfers
+- Automated treasury management
+- AI agents with USDC wallets
+
+---
+
+### ENS ($10,000)
+**What they do:** Decentralized naming system
+**Key tech:** ENS names, subnames, profiles
+**Perfect for:** Identity, onboarding, social apps
+**Prize tracks:**
+- Most Creative Use: $10k (1st: $3.5k, 2nd: $2k, 3 x $1.5k)
+
+**Qualification requirements:**
+- ENS must meaningfully improve product
+- Functional demo (not hard-coded)
+- Video/live demo + open-source code
+
+**Use cases:**
+- Smart contract wallets with ENS subnames
+- AI agent naming
+- Social profiles
+- Payment addressing
+
+---
+
+### Fluence ($10,000)
+**What they do:** Decentralized cloudless compute (75% cheaper than AWS)
+**Key tech:** GPU containers API, CPU Cloud API
+**Perfect for:** AI inference, data pipelines, backend services
+**Prize tracks:**
+- Best GPU Containers API Use: $6k (3 teams)
+- Best CPU Cloud API Use: $4k (2 teams)
+
+**Qualification requirements:**
+1. Host on Fluence CPU Cloud
+2. README with setup, usage, examples
+3. Live deployment with public endpoint
+4. Open-source license
+
+**Use cases:**
+- LLM inference
+- Multi-model AI systems
+- Data processing pipelines
+- Blockchain indexers
+
+---
+
+### Saga ($10,000)
+**What they do:** Launch custom EVM L1 blockchains (Chainlets)
+**Key tech:** Gasless transactions, dedicated blockchains
+**Perfect for:** Games, DeFi, high-performance apps
+**Prize tracks:**
+- Best dApp on Saga Chainlet: $10k
+
+**Qualification requirements:**
+- Deploy to Saga L1 chain (contact @DeJen on TG)
+- Accessible UI/frontend
+- GitHub repo with README
+- Demo video
+
+**Use cases:**
+- Zero-gas gaming experiences
+- High-throughput DeFi
+- Customized blockchain environments
+- Saga Dollar (yield-bearing stablecoin) integrations
+
+---
+
+### Yellow ($10,000)
+**What they do:** State channel clearing network
+**Key tech:** ERC-7824, Nitrolite Protocol
+**Perfect for:** High-frequency trading, scaling solutions
+**Prize tracks:**
+- Yellow Prize Pool: $10k
+
+**Qualification requirements:**
+- Integrate Nitrolite SDK
+- Demonstrate ERC-7824 state channels
+- Working demo
+- Open-source code
+
+**Use cases:**
+- Non-custodial trading
+- Cross-chain settlement
+- Infinitely scalable dApps
+- High-frequency operations
+
+---
+
+### Hyperlane ($10,000)
+**What they do:** Permissionless interoperability framework
+**Key tech:** Modular security, cross-chain messaging
+**Perfect for:** Multi-chain apps, custom security
+**Prize tracks:**
+- Best Use of Hyperlane: $4k (2 teams)
+- Best Infrastructure: $4k (2 teams)
+- Best Interchain App: $2k
+
+**Use cases:**
+- Cross-chain DeFi protocols
+- Interchain function calls
+- Custom oracle feeds across chains
+- Asset transfers with custom security
+
+---
+
+### Hardhat ($10,000)
+**What they do:** Ethereum development environment
+**Key tech:** Hardhat 3 (Solidity tests, Rust components, multichain)
+**Perfect for:** All Ethereum projects (testing/deployment)
+**Prize tracks:**
+- Best Projects Using Hardhat 3: $10k (2 x $5k)
+
+**Qualification requirements:**
+- Must use Hardhat 3.0.0+ (not v2)
+
+**Use cases:**
+- Testing complex smart contracts
+- Multichain deployments
+- OP Stack simulation
+- Advanced Solidity testing
+
+---
+
+### Celo ($10,000)
+**What they do:** L2 on EigenDA & OP Stack with 10M+ users
+**Key tech:** MiniApps, MiniPay, DeFi ecosystem
+**Perfect for:** Consumer apps, DeFi, real-world reach
+**Prize tracks:**
+- Best MiniApp on Celo: $10k
+
+**Qualification requirements:**
+- Verified contract on Celo Mainnet
+- Working dApp (live)
+- Video demo
+- Open-source
+- Not a simple fork
+- README with description
+
+**Use cases:**
+- MiniApps for 10M+ MiniPay users
+- DeFi with financial inclusion focus
+- Gasless user experiences
+- Mass-market crypto apps
+
+---
+
+### Citrea ($10,000)
+**What they do:** First ZK rollup on Bitcoin
+**Key tech:** BitVM-based bridge (Clementine), EVM-compatible
+**Perfect for:** Bitcoin DeFi, BTC-secured apps
+**Prize tracks:**
+- Best Degen Bapps: $6k
+- All-In Bitcoin: $4k
+
+**Qualification requirements:**
+- Deploy to Citrea testnet
+- Explain Citrea usage
+- Open-source GitHub
+- Working demo or video
+
+**Use cases:**
+- Bitcoin-native DeFi
+- Tokenizing Bitcoin liquidity
+- BTC-backed stablecoins
+- Privacy on Bitcoin
+
+---
+
+### The Graph ($10,000)
+**What they do:** Blockchain data indexing & querying
+**Key tech:** Subgraphs, Token API, Amp datasets, Substreams
+**Perfect for:** Analytics, data-heavy apps, AI training
+**Prize tracks:**
+- Best Amp Datasets Use: $6k
+- Best AI Use Case: $2k
+- Best Subgraph Advanced Features: $2k
+
+**Use cases:**
+- Cross-chain portfolio dashboards
+- Risk analytics tools
+- NFT explorers
+- AI agents querying blockchain data
+- Real-time trading terminals
+
+---
+
+### Symbiotic ($10,000)
+**What they do:** Universal staking protocol
+**Key tech:** Relay SDK (stake-backed attestations)
+**Perfect for:** Verifiable compute, oracles, cross-chain security
+**Prize tracks:**
+- Best Use of Relay SDK: $10k
+
+**Qualification requirements:**
+1. Demo video (max 3 min)
+2. Integrate Relay SDK
+3. README with design choices
+4. Public GitHub
+5. Testable project
+
+**Use cases:**
+- Stake-secured oracles
+- Verifiable off-chain compute
+- AI outputs with economic security
+- Cross-chain attestations
+
+---
+
+### 0G ($10,000)
+**What they do:** Decentralized AI operating system
+**Key tech:** 0G Storage, 0G DA, 0G Compute, 0G Chain
+**Perfect for:** AI-powered dApps, ML platforms
+**Prize tracks:**
+- Building Onchain AI dapps: $10k (5 prizes)
+
+**Mainnet bonus:** Extra points for mainnet deployments
+
+**Use cases:**
+- AI agents with permanent memory
+- Decentralized ML training
+- On-chain games with AI NPCs
+- DeFi with AI predictions
+
+---
+
+### Octav ($10,000)
+**What they do:** Blockchain data for digital asset managers
+**Key tech:** Octav API, Widget Template, portfolio metrics
+**Perfect for:** Analytics, portfolio management, DeFi dashboards
+**Prize tracks:**
+- Best Octav Widget: $5k
+- Best App Using Octav API: $5k (2 teams)
+
+**Qualification requirements (Widgets):**
+1. Built using Widget Template
+2. Integrate live on-chain/API data
+3. Function within Octav dashboard
+4. At least one configurable element
+5. Public demo + GitHub
+
+**Use cases:**
+- Portfolio trackers
+- NAV calculators
+- Performance attribution tools
+- Asset manager dashboards
+
+---
+
+### Anchorage Digital ($10,000)
+**Details coming soon**
+
+---
+
+### vlayer ($10,000)
+**What they do:** Connect off-chain web with on-chain trust
+**Key tech:** Web Proofs (zkTLS), ZK Prover Server, vouch
+**Perfect for:** Privacy-preserving verification, identity
+**Prize tracks:**
+- Best ZK Proving dApp: $4k
+- Best Server-Side Proving: $3k
+- Best vouch Integration: $2k
+- Build Custom vouch Data Source: $1k
+
+**Use cases:**
+- Privacy-preserving identity
+- Reputation scoring
+- Proof of engagement (social media)
+- Real-world data feeds on-chain
+
+---
+
+### Self ($10,000)
+**What they do:** Privacy-first identity with ZK proofs
+**Key tech:** Self onchain SDK, Self offchain SDK
+**Perfect for:** Age verification, sybil resistance, compliance
+**Prize tracks:**
+- Best Onchain SDK Integration: $9k
+- Best Offchain SDK Integration: $1k
+
+**Qualification requirements (onchain):**
+- Implement Self onchain SDK
+- Currently only on Celo mainnet/testnet
+- Proof must work
+
+**Use cases:**
+- Age-gated content/apps
+- Sybil-resistant airdrops
+- Country verification
+- OFAC/sanctions checking (privacy-preserving)
+
+---
+
+### Zircuit ($8,500)
+**What they do:** ZK rollup with AI-enabled security
+**Key tech:** AI sequencer security, EIP-7702 support
+**Perfect for:** DeFi, account abstraction experiments
+**Prize tracks:**
+- Best DeFi Project: $5k
+- Best Account Abstraction: $3k
+- Best Integration: $500
+
+**Qualification requirements:**
+- Deploy on Zircuit Testnet/Mainnet
+- Verify contracts
+- GitHub repo with README + demo
+
+**Use cases:**
+- Secure DeFi protocols
+- Account abstraction innovations
+- Novel yield strategies
+- Smart account experiments
+
+---
+
+### Ethereum Foundation ($6,000)
+**What they do:** Ethereum Interop Layer (EIL)
+**Key tech:** EIL SDK for chain abstraction
+**Perfect for:** Cross-L2 apps, token transfers
+**Prize tracks:**
+- Best Use of EIL SDK: $6k
+
+**Qualification requirements:**
+- Demonstrate actual EIL SDK usage
+- Include transaction payloads
+
+**Use cases:**
+- Seamless L2-to-L2 token transfers
+- Chain-abstracted DeFi
+- Unified ETH/ERC-20 experiences
+
+---
+
+### Circles ($5,000)
+**What they do:** Social money & community currencies
+**Key tech:** Trust graph, personal CRC tokens
+**Perfect for:** P2P finance, community economics
+**Prize tracks:**
+- P2P Loan Market: $3.5k
+- x402 × Circles Checkout: $1.5k
+
+**Use cases:**
+- Trust-based lending
+- Community currencies
+- P2P payments via trust networks
+- x402 checkout with CRC
+
+---
+
+### Rootstock ($5,000)
+**What they do:** Bitcoin sidechain with EVM
+**Key tech:** Bitcoin security + EVM smart contracts
+**Perfect for:** Bitcoin DeFi, BTC-native apps
+**Prize tracks:**
+- Everyday DeFi: $2k (2 teams)
+- Freestyle Track: $2k (2 teams)
+- RIF Economy: $1k
+
+**Use cases:**
+- Bitcoin yield generation
+- BTC lending/DEXes
+- RIF token staking
+- Bitcoin-secured applications
+
+---
+
+### Aztec ($5,000)
+**What they do:** Privacy-native L2 on Ethereum
+**Key tech:** ZK proofs, Noir language, Sapphire
+**Perfect for:** Private DeFi, confidential apps
+**Prize tracks:**
+- Privacy Across Chains: $2k
+- Identity Infrastructure: $2k
+- Rethinking What's Possible: $1k
+
+**Qualification requirements:**
+- Use Aztec Devnet latest
+- Clearly demonstrate privacy requirement
+- Working prototype
+
+**Use cases:**
+- Private cross-chain transfers
+- Confidential DID systems
+- Privacy-preserving DeFi
+- Hidden game mechanics
+
+---
+
+### Privy ($5,000)
+**What they do:** Wallet infrastructure
+**Key tech:** Embedded wallets, gas sponsorship, session signers
+**Perfect for:** Seamless UX, wallet onboarding
+**Prize tracks:**
+- Best x402 App: $1.7k
+- Best Gas Sponsorship: $1.7k
+- Best Session Signers: $1.6k
+
+**Use cases:**
+- Gasless user experiences
+- Automated recurring payments
+- High-frequency trading UX
+- Frictionless onboarding
+
+---
+
+### Curvegrid ($5,000)
+**What they do:** MultiBaas blockchain backend
+**Key tech:** Event indexing, cloud wallets, webhooks
+**Perfect for:** Enterprise apps, RWA tokenization
+**Prize tracks:**
+- Best RWA Tokenization: $1.5k
+- Best Digital Asset Dashboard: $1.5k
+- Best Dapp on 18+ chains: $2k (2 teams)
+
+**Supports:** Base, Celo, Filecoin, Gnosis, Polygon, Zircuit, +12 more
+
+**Use cases:**
+- Tokenized treasuries/invoices
+- RWA marketplaces
+- Portfolio dashboards
+- Multi-chain analytics
+
+---
+
+### Babylon Labs ($5,000)
+**Details coming soon** (Bitcoin staking expected)
+
+---
+
+### Ronin ($5,000)
+**What they do:** #1 gaming chain (800K MAU)
+**Key tech:** EVM-compatible, Ronin Wallet SDK
+**Perfect for:** Gaming, consumer apps
+**Prize tracks:**
+- Best Consumer/AI dApp: $5k
+
+**Qualification requirements:**
+- Video demo + working UI
+- Deploy on Saigon testnet or Ronin mainnet
+- Integrate Ronin Wallet SDK
+
+**Use cases:**
+- Gaming integrations
+- NFT utilities
+- Consumer social apps
+- AI-powered game features
+
+---
+
+### sqd ($5,000)
+**What they do:** Decentralized data tooling
+**Key tech:** Pipes SDK for data pipelines
+**Perfect for:** Analytics, real-time data, trading terminals
+**Prize tracks:**
+- Best Overall Pipes SDK: $3.5k
+- Most Creative Use Case: $1k
+- Most Degen Use Case: $500
+
+**Qualification requirements:**
+1. GitHub repo + documentation
+2. Demo video (max 5 min)
+3. README with SDK usage + feedback
+4. Submit by deadline
+
+**Use cases:**
+- Cross-chain portfolio trackers
+- Real-time trading dashboards
+- Risk analytics
+- Custom data indexing
+
+---
+
+### Espresso ($5,000)
+**What they do:** Base layer for rollups (fast finality)
+**Key tech:** Secure consensus, reliable DA
+**Perfect for:** Cross-chain apps, bridges
+**Prize tracks:**
+- Best Cross-Chain on Espresso Chain: $2.5k
+- Best Cross-Chain on Celo: $2.5k
+
+**Supported chains:** ApeChain, Rari, Appchain, Molten, T3rn, NodeOps, Rufus, Huddle01, LogX, Celo
+
+**Use cases:**
+- Fast cross-chain bridges
+- Instant cross-rollup DeFi
+- Low-latency message passing
+
+---
+
+### XMTP ($5,000)
+**What they do:** Decentralized messaging network
+**Key tech:** Mini apps in chat, Agent SDK
+**Perfect for:** Chat-native apps, social coordination
+**Prize tracks:**
+- Best Miniapp in Group Chat: $2.5k
+- Best Use of Agent SDK: $2.5k
+
+**Use cases:**
+- In-chat games/betting
+- Group coordination tools
+- Chat-based DeFi
+- Social agents in chat
+
+---
+
+## 🎯 DECISION FRAMEWORK FOR AI AGENTS
+
+When a developer describes their project, ask these questions:
+
+### 1. What chains/ecosystems are involved?
+- Single chain → Recommend L1/L2 with best fit
+- Multi-chain → LayerZero, Hyperlane, Avail Nexus
+- Bitcoin-specific → Citrea, Rootstock, Babylon
+
+### 2. What type of data is needed?
+- Price feeds → Pyth, Chainlink, Flare
+- Real-world data → Flare FDC, vlayer Web Proofs
+- Blockchain analytics → The Graph, sqd, Octav
+- Random numbers → Pyth Entropy, Chainlink VRF
+
+### 3. Are payments/money flows critical?
+- Micropayments → x402 (Polygon, Coinbase, Privy)
+- Stablecoins → Circle, Polygon
+- Cross-chain value → LayerZero OFTs, Avail Nexus
+- DeFi trading → 1inch, Uniswap
+
+### 4. Is privacy/security required?
+- Private transactions → Aztec
+- Confidential compute → Oasis ROFL
+- Identity/credentials → Self, vlayer, World ID
+- Security audits → Nethermind AuditAgent
+
+### 5. Are AI/agents involved?
+- Agent wallets → Coinbase CDP, Hedera
+- Verifiable AI → Nethermind ChaosChain, Oasis
+- AI compute → 0G, Fluence
+- Agent communication → Hedera A2A, XMTP
+
+### 6. Storage/compute needs?
+- File storage → Filecoin
+- GPU compute → Fluence, 0G
+- Decentralized backend → Fluence CPU Cloud
+- Data availability → 0G DA, Avail
+
+### 7. User experience priorities?
+- Mass reach → World (23M), Celo (10M), Ronin (800K)
+- Gasless → Saga, Privy, Celo
+- Simple onboarding → Privy, World ID
+- Chat-native → XMTP
+
+### 8. Gaming/consumer focus?
+- Gaming chain → Ronin, Saga, Chiliz
+- Consumer apps → World MiniApps, Celo MiniPay
+- Sports/entertainment → Chiliz
+
+---
+
+## 💡 EXAMPLE RECOMMENDATIONS
+
+### Example 1: "I want to build a cross-chain lending protocol"
+**Primary sponsors:**
+- LayerZero ($20k) - Omnichain token transfers
+- Pyth ($20k) - Price feeds
+- Uniswap ($20k) - v4 hooks for stable assets
+- Circle ($10k) - USDC/EURC logic
+
+**Secondary sponsors:**
+- The Graph - Analytics
+- Hardhat - Testing
+- Privy - User wallets
+
+### Example 2: "AI agent that trades based on real-world data"
+**Primary sponsors:**
+- Coinbase CDP ($20k) - Server Wallets for agents
+- Nethermind ($10k) - Verifiable agents (ChaosChain)
+- Polygon ($10k) - x402 payments
+- Flare ($10k) - FDC for Web2 data
+
+**Secondary sponsors:**
+- 1inch - Trading execution
+- Chainlink - Additional data
+- Hedera - Agent Kit
+
+### Example 3: "Privacy-preserving identity verification app"
+**Primary sponsors:**
+- Self ($10k) - ZK identity proofs
+- vlayer ($10k) - Web Proofs
+- Aztec ($5k) - Privacy layer
+- World ($20k) - World ID + 23M users
+
+**Secondary sponsors:**
+- ENS - Naming
+- Celo - Distribution
+
+### Example 4: "On-chain game with randomness"
+**Primary sponsors:**
+- Pyth ($20k) - Entropy for randomness
+- Ronin ($5k) - Gaming chain
+- Saga ($10k) - Gasless chainlet
+
+**Secondary sponsors:**
+- Filecoin - Game assets storage
+- XMTP - In-game chat
+
+### Example 5: "Cross-chain DeFi aggregator"
+**Primary sponsors:**
+- LayerZero ($20k) - Cross-chain messaging
+- 1inch ($20k) - Swap aggregation
+- Avail ($10k) - Nexus SDK for unified liquidity
+- Hyperlane ($10k) - Interoperability
+
+**Secondary sponsors:**
+- The Graph - Multi-chain indexing
+- Pyth - Price feeds
+
+---
+
+## ⚠️ IMPORTANT NOTES FOR AI AGENTS
+
+1. **Multiple bounties possible**: Projects can qualify for multiple sponsor prizes if they integrate multiple technologies meaningfully
+
+2. **Mainnet bonuses**: Some sponsors (0G, Citrea) give extra points for mainnet deployments
+
+3. **Social media bonus**: Coinbase CDP gives bonus for tagging @CoinbaseDev on X
+
+4. **Feedback rewards**: LayerZero ($750), EVVM ($500), Avail ($500) reward developer feedback
+
+5. **Open source required**: Nearly all sponsors require open-source code on GitHub
+
+6. **Demo requirements**: Most sponsors want:
+   - Working demo (live or video)
+   - Clear README
+   - Setup instructions
+   - Video (usually 3-5 min max)
+
+7. **Not allowed**: 
+   - Gambling apps (World, Circles)
+   - Simple forks without innovation
+   - Single-commit projects
+   - Hard-coded demos
+
+8. **Geographic focus**: 
+   - Ronin: Southeast Asia, USA, Latin America
+   - Celo: Financial inclusion
+   - Chiliz: Sports fans
+
+---
+
+## 🚀 GETTING STARTED CHECKLIST
+
+For any project, an AI agent should help the developer:
+
+1. **Identify 2-4 primary sponsor technologies** that align with core features
+2. **Find 1-3 secondary sponsors** for supporting infrastructure
+3. **Check qualification requirements** for each
+4. **Note prize amounts** to prioritize effort
+5. **Verify network compatibility** (testnets, mainnets)
+6. **Plan demos/videos** according to requirements
+7. **Set up social media** if bonuses available
+8. **Prepare feedback** if sponsors offer rewards for it
+
+---
+
+## 📞 CONTACT & SUPPORT
+
+Most sponsors have:
+- Telegram/Discord for support
+- Documentation sites
+- Example repos
+- Workshop sessions (check schedule)
+
+**Key workshop times** (all times UTC-03, Friday Nov 21):
+- 14:30: Fluence, Polygon, Aztec
+- 15:00: Nethermind (multiple sessions)
+- 15:30: World, Uniswap, EVVM, Flare
+- 16:00: Coinbase, Chiliz, Circle, Self
+- 16:30: Hyperlane, Celo
+- 17:00: Zircuit
+- 17:30: Protocol Labs
+
+---
+
+## 🎬 FINAL TIPS FOR MAXIMUM SUCCESS
+
+1. **Stack sponsors strategically**: A great cross-chain AI DeFi app could win 5+ bounties
+2. **Start with core functionality**: Get the main tech working first
+3. **Document as you build**: READMEs and feedback earn extra prizes
+4. **Test on multiple chains**: More integrations = more prizes
+5. **Make videos clear**: 3 minutes to show value
+6. **Engage with sponsors**: Visit booths, ask questions, get tips
+7. **Ship working code**: Functionality > features
+8. **Think about users**: UX matters even in hackathons
+
+---
+
+**¡Buena suerte en ETHGlobal Buenos Aires 2025! 🚀🇦🇷**
+
+*This file is optimized for LLM consumption and real-time project recommendations.*

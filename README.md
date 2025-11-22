@@ -106,31 +106,88 @@ forge coverage
 ### Phase 1: Core Hook + Manual Ratings ✅
 - [x] SSAOracleAdapter with manual rating setter
 - [x] SARMHook with beforeSwap logic
-- [x] Circuit breaker for high-risk ratings
-- [x] Basic Forge tests
+- [x] Circuit breaker for high-risk ratings (FROZEN mode)
+- [x] Risk mode transitions (NORMAL → ELEVATED_RISK → FROZEN)
+- [x] Comprehensive Forge tests
 
-### Phase 2: Dynamic Fees (TODO)
-- [ ] Fee tier calculation based on ratings
-- [ ] Dynamic fee application in beforeSwap
-- [ ] Tests for fee changes
+### Phase 2: Dynamic Fees ✅
+- [x] Fee tier calculation based on ratings
+- [x] Dynamic fee application in beforeSwap with override flag
+- [x] Event emission for analytics (FeeOverrideApplied)
+- [x] Tests for fee progression with risk levels
+
+**Dynamic Risk-Adjusted Fees:**
+
+SARM Protocol implements dynamic LP fees that adjust automatically based on the credit risk of the stablecoins in a pool. This ensures LPs are compensated appropriately for the risk they bear, while maintaining competitive fees for high-quality stablecoins.
+
+**Fee Structure:**
+
+| Credit Rating | Risk Level | LP Fee | Basis Points | Use Case |
+|--------------|------------|--------|--------------|----------|
+| 1-2 | NORMAL | 500 | 0.05% (5 bps) | High-quality stablecoins (USDC, USDT) |
+| 3 | ELEVATED_RISK | 1000 | 0.10% (10 bps) | Stablecoins showing stress signals |
+| 4-5 | FROZEN | 3000* | 0.30% (30 bps) | Depeg risk/Circuit breaker active |
+
+*Note: Rating 4+ typically triggers the circuit breaker, blocking swaps entirely. The 0.30% fee would only apply if special exceptions are implemented.
+
+**How It Works:**
+
+1. **Before every swap**, the hook queries both token ratings from the oracle
+2. The **effective rating** is calculated as `max(rating0, rating1)` (worst-case)
+3. The hook maps the effective rating to the appropriate fee using `_feeForRating()`
+4. The fee is returned with `LPFeeLibrary.OVERRIDE_FEE_FLAG` to apply for that specific swap
+5. A `FeeOverrideApplied` event is emitted for analytics and indexing
+
+**Benefits:**
+
+- **Risk Compensation**: LPs earn higher fees when holding riskier assets
+- **Market Signals**: Fee changes provide real-time risk signals to traders
+- **Capital Efficiency**: Low fees on safe pairs maximize trading volume
+- **Circuit Breaker Integration**: Seamlessly works with risk gating system
 
 ### Phase 3: Chainlink Integration (TODO)
 - [ ] Chainlink SSA feed interface
-- [ ] refreshRating() implementation
+- [ ] refreshRating() implementation with real feeds
 - [ ] Mock Chainlink feed for tests
+- [ ] Automated rating updates
 
 ### Phase 4: Analytics + Frontend (TODO)
-- [ ] The Graph subgraph
-- [ ] Event indexing
-- [ ] Risk dashboard UI
+- [ ] The Graph subgraph for event indexing
+- [ ] RiskCheck and FeeOverrideApplied event tracking
+- [ ] Risk dashboard UI showing ratings and fee history
+- [ ] LP analytics (fees earned by risk level)
 
 ## Risk Rating Scale
 
-- **1**: Minimal risk (e.g., well-collateralized, audited stablecoins)
-- **2**: Low risk
-- **3**: Medium risk
-- **4**: Elevated risk (circuit breaker threshold)
-- **5**: High risk (full freeze)
+S&P Global SSA ratings map to SARM risk modes:
+
+| Rating | S&P Assessment | SARM Mode | Action |
+|--------|---------------|-----------|--------|
+| **1** | Excellent stability | NORMAL | 0.05% fee |
+| **2** | Good stability | NORMAL | 0.05% fee |
+| **3** | Moderate stability | ELEVATED_RISK | 0.10% fee |
+| **4** | High depeg risk | FROZEN | Swaps blocked |
+| **5** | Critical/Imminent depeg | FROZEN | Swaps blocked |
+
+**Risk Modes:**
+
+- **NORMAL**: Ratings 1-2, normal operation with competitive fees
+- **ELEVATED_RISK**: Rating 3, higher fees to compensate for increased risk
+- **FROZEN**: Ratings 4-5, circuit breaker activated, all swaps blocked
+
+## Key Features
+
+### 🛡️ Circuit Breaker Protection
+Automatically blocks swaps when stablecoin ratings indicate high depeg risk, protecting LPs from toxic flow.
+
+### 💰 Dynamic Risk-Adjusted Fees
+LP fees adjust in real-time based on S&P Global credit ratings, ensuring proper risk compensation.
+
+### 📊 Full Transparency
+All risk assessments and fee changes emit events for on-chain analytics and The Graph indexing.
+
+### 🔗 Institutional Data
+Integrates S&P Global SSA ratings via Chainlink feeds (Phase 3), bringing institutional-grade risk assessment to DeFi.
 
 ## License
 

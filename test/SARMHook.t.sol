@@ -486,4 +486,201 @@ contract SARMHookTest is Test, Deployers {
         console2.log("Swap 4: Success (NORMAL mode) - Market normalized");
         assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.NORMAL));
     }
+
+    /*//////////////////////////////////////////////////////////////
+                      PHASE 2: DYNAMIC FEES TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function test_DynamicFees_LowRiskFee() public {
+        // Set low risk ratings (1-2) → should get 0.05% fee (500)
+        oracle.setRatingManual(address(mockUSDC), 1);
+        oracle.setRatingManual(address(mockUSDT), 2);
+
+        // Expect FeeOverrideApplied event with 500 (0.05%)
+        vm.expectEmit(true, false, false, true);
+        emit SARMHook.FeeOverrideApplied(poolId, 2, 500);
+
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -1000e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.NORMAL));
+    }
+
+    function test_DynamicFees_ModerateRiskFee() public {
+        // Set moderate risk rating (3) → should get 0.10% fee (1000)
+        oracle.setRatingManual(address(mockUSDC), 1);
+        oracle.setRatingManual(address(mockUSDT), 3);
+
+        // Expect FeeOverrideApplied event with 1000 (0.10%)
+        vm.expectEmit(true, false, false, true);
+        emit SARMHook.FeeOverrideApplied(poolId, 3, 1000);
+
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -1000e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.ELEVATED_RISK));
+    }
+
+    function test_DynamicFees_FeeIncreasesWithRisk() public {
+        console2.log("=== Testing Fee Progression with Risk ===");
+        
+        // Start with rating 1 (lowest risk)
+        oracle.setRatingManual(address(mockUSDC), 1);
+        oracle.setRatingManual(address(mockUSDT), 1);
+
+        console2.log("Rating 1: Fee should be 500 (0.05%)");
+        vm.expectEmit(true, false, false, true);
+        emit SARMHook.FeeOverrideApplied(poolId, 1, 500);
+        
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+
+        // Increase to rating 2 (still low risk)
+        oracle.setRatingManual(address(mockUSDT), 2);
+
+        console2.log("Rating 2: Fee should still be 500 (0.05%)");
+        vm.expectEmit(true, false, false, true);
+        emit SARMHook.FeeOverrideApplied(poolId, 2, 500);
+        
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: false,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MAX_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+
+        // Increase to rating 3 (elevated risk)
+        oracle.setRatingManual(address(mockUSDT), 3);
+
+        console2.log("Rating 3: Fee should double to 1000 (0.10%)");
+        vm.expectEmit(true, false, false, true);
+        emit SARMHook.FeeOverrideApplied(poolId, 3, 1000);
+        
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+
+        console2.log("All fee transitions successful!");
+    }
+
+    function test_DynamicFees_EventEmittedOnEverySwap() public {
+        oracle.setRatingManual(address(mockUSDC), 2);
+        oracle.setRatingManual(address(mockUSDT), 2);
+
+        // First swap
+        vm.expectEmit(true, false, false, true);
+        emit SARMHook.FeeOverrideApplied(poolId, 2, 500);
+        
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+
+        // Second swap - event should be emitted again
+        vm.expectEmit(true, false, false, true);
+        emit SARMHook.FeeOverrideApplied(poolId, 2, 500);
+        
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: false,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MAX_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+    }
+
+    function test_DynamicFees_HighRiskNoFeeApplied() public {
+        // Set high risk rating (4) - swap should be blocked before fee is applied
+        oracle.setRatingManual(address(mockUSDC), 2);
+        oracle.setRatingManual(address(mockUSDT), 4);
+
+        // Swap should revert, so FeeOverrideApplied event should NOT be emitted
+        vm.prank(BOB);
+        vm.expectRevert(); // Hook error wrapped by Uniswap
+        swapRouter.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+    }
 }

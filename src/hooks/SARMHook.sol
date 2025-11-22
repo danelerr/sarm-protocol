@@ -9,6 +9,7 @@ import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
+import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
 
 import {SSAOracleAdapter} from "../oracles/SSAOracleAdapter.sol";
 
@@ -54,6 +55,14 @@ contract SARMHook is BaseHook {
      * @param newMode New risk mode (NORMAL, ELEVATED_RISK, FROZEN).
      */
     event RiskModeChanged(PoolId indexed poolId, RiskMode newMode);
+
+    /**
+     * @notice Emitted when a dynamic fee is applied to a swap.
+     * @param poolId ID of the pool.
+     * @param effectiveRating The rating used to determine the fee.
+     * @param fee The LP fee applied (in hundredths of a bip).
+     */
+    event FeeOverrideApplied(PoolId indexed poolId, uint8 effectiveRating, uint24 fee);
 
     /*//////////////////////////////////////////////////////////////
                                  TYPES
@@ -177,9 +186,16 @@ contract SARMHook is BaseHook {
             revert SwapBlocked_HighRisk();
         }
 
-        // Phase 1: Allow swap without fee modification
-        // Phase 2: Return dynamic fee based on risk mode
-        return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
+        // Phase 2: Dynamic LP fees based on effective rating
+        uint24 baseFee = _feeForRating(effectiveRating);
+
+        // Emit event for analytics and monitoring
+        emit FeeOverrideApplied(poolId, effectiveRating, baseFee);
+
+        // Set override flag so Uniswap v4 uses this fee for this swap
+        uint24 feeOverride = baseFee | LPFeeLibrary.OVERRIDE_FEE_FLAG;
+
+        return (BaseHook.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, feeOverride);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -207,6 +223,23 @@ contract SARMHook is BaseHook {
             return RiskMode.ELEVATED_RISK;
         } else {
             return RiskMode.NORMAL;
+        }
+    }
+
+    /**
+     * @dev Map an effective rating to a LP fee (in hundredths of a bip).
+     * Example:
+     *  - ratings 1-2: 0.05% (500)
+     *  - rating 3:    0.10% (1000)
+     *  - rating 4+:   0.30% (3000) [though 4+ is frozen in our logic]
+     */
+    function _feeForRating(uint8 effectiveRating) internal pure returns (uint24) {
+        if (effectiveRating <= 2) {
+            return 500;   // 0.05% - Low risk, competitive fees
+        } else if (effectiveRating == 3) {
+            return 1000;  // 0.10% - Elevated risk, moderate fees
+        } else {
+            return 3000;  // 0.30% - High risk (probably unused if 4+ is frozen)
         }
     }
 }
