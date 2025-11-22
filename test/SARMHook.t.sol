@@ -178,6 +178,21 @@ contract SARMHookTest is Test, Deployers {
                            SARM HOOK TESTS
     //////////////////////////////////////////////////////////////*/
 
+    function test_BeforeInitialize_RevertIfNotDynamicFee() public {
+        // Attempt to initialize a pool without DYNAMIC_FEE_FLAG
+        PoolKey memory badKey = PoolKey({
+            currency0: Currency.wrap(address(mockUSDC)),
+            currency1: Currency.wrap(address(mockUSDT)),
+            fee: uint24(500), // Static fee without DYNAMIC_FEE_FLAG
+            tickSpacing: 60,
+            hooks: hook
+        });
+
+        // Should revert (error is wrapped by Uniswap's PoolManager)
+        vm.expectRevert();
+        manager.initialize(badKey, SQRT_PRICE_1_1);
+    }
+
     function test_SARMHook_SwapWithLowRisk() public {
         // Set low risk ratings (1-2)
         oracle.setRatingManual(address(mockUSDC), 1);

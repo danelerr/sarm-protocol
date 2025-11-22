@@ -216,6 +216,11 @@ contract SSAOracleAdapter is Ownable {
      * @dev Normalize DataLink benchmarkPrice to 1-5 rating scale.
      * @dev DataLink v4 SSA feeds encode rating as: rating * 1e18
      *      Examples: 1e18 = rating 1, 3e18 = rating 3, 3.5e18 = rating 3.5
+     *      
+     *      NOTE: This implementation truncates to integer (e.g., 2.3 → 2, 3.7 → 3).
+     *      For SSA bands 1.0-2.0, 2.1-3.0, 3.1-4.0, 4.1-5.0:
+     *      - Values like 2.1-2.9 round down to 2 (Excellent) instead of 3 (Good)
+     *      - Acceptable for MVP/hackathon; future enhancement: use absPrice / 1e17 for 1-decimal precision
      * @param benchmarkPrice Raw benchmarkPrice from DataLink (int192, scaled by 1e18).
      * @return Normalized rating (1-5), truncated to integer.
      */
@@ -226,8 +231,8 @@ contract SSAOracleAdapter is Ownable {
         }
         uint256 absPrice = uint256(int256(benchmarkPrice));
         
-        // Divide by 1e18 to get integer rating
-        // Example: 3e18 / 1e18 = 3
+        // Divide by 1e18 to get integer rating (truncates decimals)
+        // Example: 3e18 / 1e18 = 3, 2.3e18 / 1e18 = 2
         uint256 rating = absPrice / 1e18;
         
         // Validate range (1-5)
