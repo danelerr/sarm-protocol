@@ -6,6 +6,9 @@ broadcast/
 # Dependencies
 lib/
 
+# MCP context files (local only)
+mcp/
+
 # Environment
 .env
 .env.*
