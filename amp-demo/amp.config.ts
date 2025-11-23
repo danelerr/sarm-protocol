@@ -77,14 +77,14 @@ ETHGlobal Buenos Aires 2025 - Uniswap v4 Stable-Asset Hooks Track
       "DeFi",
       "ETHGlobal",
     ],
-    // Add contract addresses once deployed
-    // sources: [
-    //   "0x...", // SARMHook address
-    //   "0x...", // SSAOracleAdapter address
-    // ],
-    network: process.env.VITE_AMP_NETWORK || "anvil",
+    // Contract addresses on Base Sepolia
+    sources: [
+      "0x828e95D79fC2fD10882C13042edDe1071BB2E080", // SAGEHook
+      "0x444a4967487B655675c7F3EF0Ec68f93ae9f6866", // SSAOracleAdapter
+    ],
+    network: process.env.VITE_AMP_NETWORK || "base_sepolia",
     dependencies: {
-      rpc: process.env.VITE_AMP_RPC_DATASET || "_/anvil@0.0.1",
+      rpc: process.env.VITE_AMP_RPC_DATASET || "_/base_sepolia@0.0.1",
     },
     tables: {
       ...baseTables,

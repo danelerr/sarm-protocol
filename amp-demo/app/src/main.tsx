@@ -4,13 +4,13 @@ import { WagmiProvider } from "wagmi";
 
 import "./index.css";
 
-import { App } from "./components/App.tsx";
+import { SAGEDashboard } from "./components/SAGEDashboard.tsx";
 import { wagmiConfig } from "./lib/config.ts";
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={new QueryClient()}>
     <WagmiProvider config={wagmiConfig}>
-      <App />
+      <SAGEDashboard />
     </WagmiProvider>
   </QueryClientProvider>
 );

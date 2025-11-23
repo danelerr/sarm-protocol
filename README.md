@@ -1,175 +1,245 @@
-# SAGE Protocol
+# 🛡️ SAGE Protocol
 
-**Stablecoin Automated Risk Management Protocol**
+**Stablecoin Automated Governance & Economics**
 
-A Uniswap v4 Hook that makes stablecoin liquidity "risk-aware" using institutional-grade ratings.
+A Uniswap v4 Hook that makes stablecoin liquidity "risk-aware" using S&P Global SSA ratings with dynamic fee rewards.
 
-## Overview
+## 🎯 Overview
 
-SAGE Protocol integrates S&P Global Stablecoin Stability Assessment (SSA) ratings into Uniswap v4 pools to:
-- **Reward high-quality stablecoins** with 30% fee discounts (ratings 1-2)
-- Apply standard pricing to normal stablecoins (ratings 3-5)
-- **No punitive measures** - swaps always allowed, only fee adjustments
-- Provide transparent risk signals to LPs and traders
+SAGE Protocol integrates S&P Global Stablecoin Stability Assessment (SSA) ratings into Uniswap v4 to create a **reward-based, non-punitive risk model**:
 
-## Built For
+- ✅ **Reward premium stablecoins** with 30% fee discounts (ratings 1-2 → 0.70% vs 1.00%)
+- ✅ **Standard fees** for normal stablecoins (ratings 3-5 → 1.00%)
+- ✅ **No swap blocking** - all transactions allowed, only fee adjustments
+- ✅ **Transparent risk signals** for LPs and traders
 
-- **ETHGlobal Buenos Aires 2025**
-- **Uniswap v4 Stable-Asset Hooks Track**
-- **Chainlink Bounty** (S&P Global SSA feeds)
-- **The Graph Bounty** (Risk analytics & dashboards)
+## 🏆 Built For ETHGlobal Buenos Aires 2025
 
-## Architecture
+**Competing in:**
+- 🦄 **Uniswap v4 Stable-Asset Hooks Track**
+- 🔗 **Chainlink** - S&P Global SSA integration (simulated)
+- 📊 **The Graph Amp** - Risk analytics & SQL dashboards
+
+**Live Deployment:** [Base Sepolia](https://sepolia.basescan.org)
+- Oracle: `0x444a4967487B655675c7F3EF0Ec68f93ae9f6866`
+- Hook: `0x828e95D79fC2fD10882C13042edDe1071BB2E080`
+
+**Live Demo:** https://sage-r7emdhhbb-danelerrs-projects.vercel.app
+
+## 🏗️ Architecture
 
 ### Core Contracts
 
-1. **SSAOracleAdapter** (`src/oracles/SSAOracleAdapter.sol`)
-   - Single source of truth for stablecoin ratings on-chain
-   - Integrates with **Chainlink DataLink** for S&P Global SSA ratings via pull-based verification
-   - On-chain signature verification via DataLink verifier proxy
-   - Emits `RatingUpdated` events for indexing
+#### 1. **SSAOracleAdapter** (`src/oracles/SSAOracleAdapter.sol`)
+Single source of truth for S&P Global SSA ratings on-chain.
 
-2. **SAGEHook** (`src/hooks/SAGEHook.sol`)
-   - Uniswap v4 Hook implementing risk-aware swap logic
-   - Reads ratings from SSAOracleAdapter
-   - Applies dynamic fees and circuit breakers based on risk
-   - Emits `RiskCheck` and `FeeOverrideApplied` events for analytics
+**Features:**
+- Stores token ratings (1-5 scale)
+- Chainlink DataLink integration ready (simulated for hackathon)
+- Emits `RatingUpdated` events for off-chain indexing
+- Owner-controlled rating updates
 
-3. **IDataLinkVerifier** (`src/interfaces/IDataLinkVerifier.sol`)
-   - Interface for Chainlink DataLink verifier proxy
-   - Validates signed reports from Chainlink DON before updating state
+**Deployed:** `0x444a4967487B655675c7F3EF0Ec68f93ae9f6866`
 
-4. **MockERC20** / **MockVerifier** (`src/mocks/`)
-   - Test contracts for development and testing
+#### 2. **SAGEHook** (`src/hooks/SAGEHook.sol`)
+Uniswap v4 Hook implementing reward-based risk model.
 
-## Quick Start Deployment
+**Features:**
+- Reads ratings from SSAOracleAdapter before each swap
+- Dynamic fee calculation: Rating 1-2 → 70 bps, Rating 3-5 → 100 bps
+- No swap blocking - always allows transactions
+- Emits `RiskCheck` and `FeeOverrideApplied` for analytics
+
+**Deployed:** `0x828e95D79fC2fD10882C13042edDe1071BB2E080`
+
+#### 3. **Pools Initialized**
+- **USDC/USDT** - Both rating 1 → 0.70% fee (30% discount)
+- **USDC/DAI** - Max rating 3 → 1.00% fee (standard)
+- **DAI/USDT** - Max rating 3 → 1.00% fee (standard)
+
+### Frontend Stack
+
+#### Web3 Swap Interface (`frontend/`)
+Built with **Next.js 16** + **wagmi** + **viem**
+
+**Features:**
+- Real-time token rating display from on-chain oracle
+- Dynamic fee calculator showing risk premium
+- MetaMask wallet integration
+- Responsive UI with Tailwind CSS + shadcn/ui
+
+**Live:** https://sage-r7emdhhbb-danelerrs-projects.vercel.app
+
+#### Amp Analytics Dashboard (`amp-demo/`)
+SQL-powered analytics with **The Graph Amp**
+
+**Features:**
+- Real-time event indexing (RiskCheck, RatingUpdated, FeeOverrideApplied)
+- SQL queries for risk analytics
+- Historical rating change tracking
+- Fee distribution by risk rating
+
+**Queries Available:**
+```sql
+-- Recent risk checks
+SELECT * FROM "eth_global/sarm@dev".risk_check 
+ORDER BY block_num DESC LIMIT 10
+
+-- Rating update history
+SELECT * FROM "eth_global/sarm@dev".rating_updated
+WHERE token = '0x036CbD...' ORDER BY block_num DESC
+
+-- Fee distribution by rating
+SELECT effective_rating, AVG(fee) as avg_fee
+FROM "eth_global/sarm@dev".fee_override_applied
+GROUP BY effective_rating
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- [Foundry](https://book.getfoundry.sh/getting-started/installation)
-- Private key with Base Sepolia ETH
-- Uniswap v4 PoolManager address (from ETHGlobal resources)
-
-### 1. Setup Environment
-
 ```bash
-# Clone and setup
-git clone https://github.com/yourusername/sarm-protocol.git
-cd sarm-protocol
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
 
-# Copy environment template
-cp .env.example .env
-
-# Edit .env and set:
-# - PRIVATE_KEY (your deployer key)
-# - POOL_MANAGER (Uniswap v4 on Base Sepolia)
-# - Token addresses are pre-filled for Base Sepolia
+# Install Node.js dependencies (for frontend)
+npm install -g pnpm
 ```
 
-### 2. Deploy Everything
+### 1. Clone & Setup
 
 ```bash
-# Option A: Using helper script
-./script/deploy.sh sepolia
+git clone https://github.com/danelerr/sarm-protocol.git
+cd sarm-protocol
 
-# Option B: Direct forge command
-forge script script/DeploySARM.s.sol \
-  --rpc-url $BASE_SEPOLIA_RPC_URL \
+# Install Solidity dependencies
+forge install
+
+# Copy environment
+cp .env.example .env
+```
+
+### 2. Deploy Contracts (Already Deployed on Base Sepolia)
+
+```bash
+# Set your private key in .env
+echo "PRIVATE_KEY=0x..." >> .env
+
+# Deploy everything
+forge script script/DeploySAGE.s.sol \
+  --rpc-url https://sepolia.base.org \
   --broadcast \
   --verify
 ```
 
-This single script will:
-1. Deploy `SSAOracleAdapter` (with mocked ratings)
-2. Set hardcoded ratings: USDC=1, USDT=1, DAI=3
-3. Deploy `SAGEHook` with oracle integration
-4. Initialize 3 pools with dynamic fees:
-   - USDC/USDT (both rating 1 → 70 bps fee, 30% discount)
-   - USDT/DAI (max rating 3 → 100 bps fee, normal)
-   - DAI/USDC (max rating 3 → 100 bps fee, normal)
+**What it deploys:**
+1. ✅ SSAOracleAdapter with initial ratings (USDC=1, USDT=1, DAI=3)
+2. ✅ SAGEHook with CREATE2 address validation
+3. ✅ 3 Uniswap v4 pools with dynamic fees
 
-### 3. Verify Deployment
+### 3. Run Frontend
 
 ```bash
-# Check oracle ratings
-cast call <ORACLE_ADDRESS> "getRating(address)" <USDC_ADDRESS>
-
-# Should return (1, <timestamp>) for USDC
-```
-
-📚 **Full deployment guide**: See [script/README.md](script/README.md) for:
-- Hook address mining (CREATE2)
-- Manual rating updates
-- Troubleshooting
-- Next steps (liquidity, swaps)
-
-## Development Setup
-
-### Prerequisites
-
-- [Foundry](https://book.getfoundry.sh/getting-started/installation)
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/sarm-protocol.git
-cd sarm-protocol
+cd frontend
 
 # Install dependencies
-forge install OpenZeppelin/openzeppelin-contracts
-forge install Uniswap/v4-core
-forge install Uniswap/v4-periphery
-forge install foundry-rs/forge-std
+npm install
 
-# Build contracts
-forge build
+# Start dev server
+npm run dev
 
-# Run tests
-forge test
-
-# Run tests with verbosity
-forge test -vvv
+# Open http://localhost:3000
 ```
 
-## Project Structure
-
-```
-sarm-protocol/
-├── src/
-│   ├── hooks/
-│   │   └── SAGEHook.sol           # Main Uniswap v4 Hook
-│   ├── oracles/
-│   │   └── SSAOracleAdapter.sol   # Rating oracle adapter
-│   ├── interfaces/
-│   │   └── IDataLinkVerifier.sol  # DataLink verifier interface
-│   └── mocks/
-│       └── MockERC20.sol          # Test tokens
-├── test/
-│   └── SAGEHook.t.sol             # Forge tests (26/26 passing)
-├── script/
-│   └── Deploy.s.sol               # Deployment scripts
-├── cre/                           # Chainlink Runtime Environment
-│   ├── workflows/
-│   │   └── ssa-refresh.ts         # Automated rating updates
-│   ├── cre.toml                   # CRE configuration
-│   └── README.md                  # CRE setup guide
-├── scripts/                       # Manual rating refresh scripts
-│   ├── refresh-rating.ts          # Single token refresh
-│   └── refresh-all.ts             # Batch refresh
-├── lib/                           # Dependencies (gitignored)
-├── foundry.toml                   # Foundry configuration
-└── README.md
-```
-
-## Testing
+### 4. Run Amp Analytics (Optional)
 
 ```bash
-# Run all tests
+cd amp-demo
+
+# Install dependencies
+pnpm install
+
+# Initialize Amp
+ampctl init
+
+# Start Amp server (separate terminal)
+ampd dev --config ~/.amp/config.toml
+
+# Deploy dataset (separate terminal)
+pnpm amp deploy --reference "eth_global/sarm@dev"
+
+# Start dashboard
+pnpm dev
+
+# Open http://localhost:5173
+```
+## 📊 How It Works
+
+### Rating System (S&P Global SSA Scale)
+
+| Rating | Risk Level | Fee Applied | Description |
+|--------|-----------|-------------|-------------|
+| 1 | Minimal | 0.70% | Well-collateralized, audited (30% discount) |
+| 2 | Low | 0.70% | Strong fundamentals (30% discount) |
+| 3 | Medium | 1.00% | Standard risk (normal fee) |
+| 4 | Elevated | 1.00% | Higher risk (normal fee) |
+| 5 | High | 1.00% | Significant concerns (normal fee) |
+
+### Dynamic Fee Logic
+
+```solidity
+function beforeSwap(PoolKey calldata key, ...) {
+    // Read ratings from oracle
+    uint8 rating0 = oracle.getRating(token0);
+    uint8 rating1 = oracle.getRating(token1);
+    
+    // Take best (lowest) rating for fee calculation
+    uint8 effectiveRating = min(rating0, rating1);
+    
+    // Apply fee: 70 bps for ratings 1-2, 100 bps for 3-5
+    uint24 fee = (effectiveRating <= 2) ? 70 : 100;
+    
+    // Override pool fee for this swap
+    poolManager.updateDynamicLPFee(key, fee);
+    
+    // Emit for analytics
+    emit FeeOverrideApplied(poolId, effectiveRating, fee);
+}
+```
+
+### Example: USDC/DAI Swap
+
+1. User initiates swap USDC → DAI
+2. Hook reads ratings: USDC=1 (minimal risk), DAI=3 (medium risk)
+3. Effective rating = min(1, 3) = 1
+4. Fee applied = 0.70% (30% discount from standard 1.00%)
+5. Swap executes with reduced fee
+6. Event emitted for off-chain indexing
+
+## 🧪 Testing
+
+```bash
+# Run all tests (26/26 passing)
 forge test
 
-# Run specific test
-forge test --match-test testSwapWithLowRisk
+# Run with verbosity
+forge test -vvv
+
+# Test specific functionality
+forge test --match-test testDynamicFeeApplication
+forge test --match-test testRatingUpdate
+forge test --match-test testRiskCheck
+```
+
+**Test Coverage:**
+- ✅ Dynamic fee calculation (ratings 1-5)
+- ✅ Pool initialization with hook
+- ✅ Rating updates and event emissions
+- ✅ Risk mode transitions
+- ✅ Swap execution with fee overrides
+- ✅ Edge cases and error conditions
 
 # Run with gas reporting
 forge test --gas-report
@@ -177,157 +247,117 @@ forge test --gas-report
 # Run with coverage
 forge coverage
 ```
-
-## Implementation Status
-
-### ✅ Core Features (Complete)
-- [x] **SSAOracleAdapter** with manual rating setter (for testing/demo)
-- [x] **Chainlink DataLink integration** with pull-based verification
-  - On-chain report verification via DataLink verifier proxy
-  - `refreshRatingWithReport()` for automated rating updates
-  - Staleness checks and rating normalization
-- [x] **Chainlink Runtime Environment (CRE) workflow**
-  - Complete workflow logic designed and implemented
-  - Demonstrates automated rating updates via cron trigger architecture
-  - HTTP capability for DataLink API + EVM write capability for on-chain updates
-  - Full documentation in `cre/README.md`
-  - **Note**: Full deployment requires CRE Early Access (application pending)
-- [x] **SAGEHook with REWARD-BASED MODEL** (NEW! 🎁)
-  - **30% fee discount** for premium stablecoins (ratings 1-2)
-  - **Standard pricing** for normal stablecoins (ratings 3-5)
-  - **NO circuit breakers** - swaps always allowed
-  - **NO punitive measures** - only rewards for quality
-- [x] **Dynamic fee flag enforcement** (beforeInitialize)
-- [x] **Dynamic risk-adjusted fees** (beforeSwap):
-  - Ratings 1-2: 0.007% (70 bps) - 30% discount ✨
-  - Ratings 3-5: 0.01% (100 bps) - Standard pricing
-- [x] **Event emission** for analytics (RiskCheck, RiskModeChanged, FeeOverrideApplied)
-- [x] **Off-chain scripts** for manual DataLink report fetching (fully functional for demo)
-- [x] **Comprehensive Forge tests** (26/26 passing ✅)
-
-### 🔄 Recent Updates
-- **Nov 23, 2025**: Complete model transformation from punitive to reward-based
-  - Eliminated FROZEN state and circuit breakers
-  - Simplified to 2-tier fee structure (discount vs normal)
-  - All 26 tests updated and passing
-  - See [REWARD_MODEL.md](./REWARD_MODEL.md) for detailed explanation
-
-### 🚀 Future Enhancements
-- [ ] **CRE Early Access**: Deploy to production DON (requires approval at cre.chain.link)
-- [ ] **The Graph subgraph** for event indexing and analytics
-- [ ] **Risk dashboard UI** showing ratings and fee history
-- [ ] **LP analytics dashboard** (fees earned by risk level)
-- [ ] **Additional stablecoins** (FRAX, TUSD, etc.)
-
-## Chainlink DataLink Integration
-
-SAGE Protocol uses **Chainlink DataLink** to bring institutional-grade S&P Global SSA ratings on-chain with cryptographic verification.
-
-### Architecture
-
-**Pull-Based Verification Flow:**
+## 📁 Project Structure
 
 ```
-┌──────────────┐     1. Fetch Report      ┌──────────────┐
-│              │ ───────────────────────> │   DataLink   │
-│  Off-Chain   │  (HTTP + credentials)    │   API        │
-│  Script      │                          │              │
-│              │ <─────────────────────── │ (Signed DON  │
-└──────────────┘     2. Signed Report     │  Report)     │
-       │                                   └──────────────┘
-       │ 3. Submit Report
-       ↓
-┌──────────────────────────────────────────────────────────┐
-│  SSAOracleAdapter.refreshRatingWithReport(token, report) │
-│                                                           │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │ 4. Verify Signature via DataLink Verifier Proxy  │  │
-│  │    ✓ Check DON signature                         │  │
-│  │    ✓ Validate feed ID                            │  │
-│  │    ✓ Check staleness                             │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                           │
-│  5. Update On-Chain State: tokenRating[token] = X       │
-│  6. Emit RatingUpdated(token, oldRating, newRating)     │
-└──────────────────────────────────────────────────────────┘
-       │
-       │ 7. Hook reads rating on next swap
-       ↓
-┌──────────────────────────────────────────────────────────┐
-│  SAGEHook.beforeSwap()                                   │
-│  • Applies dynamic fees based on rating                  │
-│  • Enforces circuit breaker if rating ≥ 4                │
-└──────────────────────────────────────────────────────────┘
+sarm-protocol/
+├── src/
+│   ├── hooks/
+│   │   └── SAGEHook.sol              # Main Uniswap v4 Hook
+│   ├── oracles/
+│   │   └── SSAOracleAdapter.sol      # S&P SSA rating oracle
+│   ├── interfaces/
+│   │   └── IDataLinkVerifier.sol     # Chainlink DataLink interface
+│   └── mocks/
+│       └── MockERC20.sol             # Test tokens
+├── test/
+│   └── SAGEHook.t.sol                # Forge tests (26/26 ✅)
+├── script/
+│   └── DeploySAGE.s.sol              # Deployment with CREATE2
+├── frontend/                          # Next.js swap interface
+│   ├── app/                          # App router pages
+│   ├── components/                   # React components
+│   ├── hooks/                        # Custom React hooks
+│   └── lib/                          # Contracts & Web3 config
+├── amp-demo/                         # The Graph Amp analytics
+│   ├── amp.config.ts                 # Dataset configuration
+│   └── app/src/components/           # SQL dashboard
+├── DEPLOYMENT.md                     # Deployment details
+└── foundry.toml                      # Foundry config
 ```
 
-**DataLink v4 Payload:**
-```solidity
-// Verified payload from verifier.verify() contains 8 fields:
-(
-    bytes32 feedId,              // Feed identifier  
-    uint32 validFromTimestamp,   // Rating validity start
-    uint32 observationsTimestamp, // Observation time
-    uint192 nativeFee,           // Native token fee
-    uint192 linkFee,             // LINK token fee
-    uint32 expiresAt,            // Expiration time
-    int192 benchmarkPrice,       // SSA rating * 1e18 (e.g., 3e18 = rating 3)
-    uint32 marketStatus          // Market status flag
-)
+## 🎯 Key Features
 
-// Normalization: benchmarkPrice / 1e18 = rating (1-5)
-```
+### ✅ Reward-Based Risk Model
+- **No punitive measures** - swaps never blocked
+- **30% fee discount** for premium stablecoins (ratings 1-2)
+- **Standard pricing** for normal stablecoins (ratings 3-5)
+- **Transparent signals** - users see ratings before swapping
 
-See [`DATALINK_V4_FORMAT.md`](DATALINK_V4_FORMAT.md) for detailed technical documentation.
+### ✅ Production-Ready Architecture
+- CREATE2 deployment for deterministic hook addresses
+- Uniswap v4 address validation (required permission bits)
+- Event-driven analytics (The Graph Amp integration)
+- Comprehensive test coverage (26/26 tests passing)
 
-### Security & Permissions
+### ✅ Real On-Chain Deployment
+- Deployed on Base Sepolia testnet
+- 3 pools initialized with real tokens
+- Frontend reading live on-chain data
+- Verified contracts on Basescan
 
-**Oracle Updates:**
-- `refreshRatingWithReport()` is **permissionless** - anyone can submit a DataLink report
-- Security guaranteed by:
-  - [x] DataLink verifier validates DON signatures on-chain
-  - [x] Feed ID validation ensures correct data source
-  - [x] Staleness checks reject old reports (24h MAX_STALENESS)
-  - [x] Expiration validation via `expiresAt` field
-  - [x] Rating normalization validates 1-5 range
-- **Why permissionless?** Allows any party to pay gas for rating updates, increasing system liveness. Invalid reports are rejected by verifier.
+## 🔗 Links
 
-**Admin Functions (owner-only):**
-- `setRatingManual()` - Manual rating setter (for testing/demos)
-- `setFeedId()` - Configure DataLink feed IDs per token
+- **Live Demo:** https://sage-r7emdhhbb-danelerrs-projects.vercel.app
+- **Contracts (Base Sepolia):**
+  - Oracle: [`0x444a4967487B655675c7F3EF0Ec68f93ae9f6866`](https://sepolia.basescan.org/address/0x444a4967487B655675c7F3EF0Ec68f93ae9f6866)
+  - Hook: [`0x828e95D79fC2fD10882C13042edDe1071BB2E080`](https://sepolia.basescan.org/address/0x828e95D79fC2fD10882C13042edDe1071BB2E080)
+- **GitHub:** https://github.com/danelerr/sarm-protocol
 
-**Future Enhancements:**
-- Consider using Chainlink Automation for periodic refreshes
-- Add role-based access control for production environments
-- Monitor `marketStatus` field for additional validation
+## 🏆 Bounties & Prizes
 
-### Setup Instructions
+### Uniswap v4 Hooks
+**✅ Qualified:** Stable-Asset Hooks Track
+- Dynamic fee adjustment based on risk ratings
+- Reward mechanism for quality stablecoins
+- Non-punitive model (no circuit breakers)
+- Production deployment on testnet
 
-1. **Deploy Contracts**
-```bash
-forge script script/Deploy.s.sol --broadcast --verify
-```
+### Chainlink
+**✅ Qualified:** S&P Global SSA Integration
+- DataLink interface implementation
+- Pull-based verification architecture
+- On-chain signature validation
+- Automated rating refresh workflow designed
 
-2. **Configure DataLink Feed IDs**
-```bash
-# Get feed IDs from https://data.chain.link
-# Example: SSA-USDC, SSA-USDT, SSA-DAI
+### The Graph Amp
+**✅ Qualified:** Best Use of Amp Datasets
+- SQL-queryable event indexing
+- Risk analytics dashboard
+- Historical rating tracking
+- Fee distribution analysis
 
-cast send $SSA_ORACLE_ADDRESS \
-  "setFeedId(address,bytes32)" \
-  $USDC_ADDRESS \
-  0x... # Feed ID from data.chain.link
-```
+## 💡 Why SAGE?
 
-3. **Setup Off-Chain Scripts**
-```bash
-# Install dependencies
-pnpm install
+Traditional DeFi treats all stablecoins equally, but not all stablecoins are created equal:
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your DataLink credentials
+❌ **Problem:** USDC (rated 1) and risky stablecoin (rated 5) pay same fees
+✅ **Solution:** SAGE rewards quality with 30% lower fees
 
-# Test refresh
+**Benefits:**
+- **For Users:** Lower fees when trading premium stablecoins
+- **For LPs:** Risk transparency and fair pricing
+- **For Protocols:** Prevent contagion without blocking trades
+- **For Market:** Incentivize quality and best practices
+
+## 📜 License
+
+MIT License - see [LICENSE](LICENSE)
+
+## 👥 Team
+
+Built for ETHGlobal Buenos Aires 2025
+
+- **Developer:** Daniel E.
+- **GitHub:** [@danelerr](https://github.com/danelerr)
+
+## 🙏 Acknowledgments
+
+- Uniswap Foundation for v4 architecture
+- Chainlink Labs for DataLink integration support
+- S&P Global for SSA rating framework
+- The Graph for Amp indexing tools
+- ETHGlobal for the amazing hackathon
 pnpm refresh:usdc
 ```
 
