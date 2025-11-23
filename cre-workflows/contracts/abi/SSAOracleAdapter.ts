@@ -1,0 +1,335 @@
+export const SSAOracleAdapter = [
+  {
+    type: 'constructor',
+    inputs: [
+      {
+        name: '_verifier',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'MAX_STALENESS',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getRating',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: 'rating',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
+      {
+        name: 'lastUpdated',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'owner',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'refreshRating',
+    inputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'pure',
+  },
+  {
+    type: 'function',
+    name: 'refreshRatingWithReport',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'report',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'renounceOwnership',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'setFeedId',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'feedId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'setRatingManual',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+      {
+        name: 'rating',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'tokenFeedId',
+    inputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'tokenRating',
+    inputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'tokenRatingLastUpdated',
+    inputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'transferOwnership',
+    inputs: [
+      {
+        name: 'newOwner',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'verifier',
+    inputs: [],
+    outputs: [
+      {
+        name: '',
+        type: 'address',
+        internalType: 'contract IDataLinkVerifier',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'event',
+    name: 'FeedIdSet',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
+        name: 'feedId',
+        type: 'bytes32',
+        indexed: false,
+        internalType: 'bytes32',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'OwnershipTransferred',
+    inputs: [
+      {
+        name: 'previousOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
+        name: 'newOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'RatingUpdated',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
+        name: 'oldRating',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
+      {
+        name: 'newRating',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'error',
+    name: 'ChainlinkNotImplemented',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidFeed',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidFeedId',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidRating',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'OwnableInvalidOwner',
+    inputs: [
+      {
+        name: 'owner',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'OwnableUnauthorizedAccount',
+    inputs: [
+      {
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'StaleReport',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'TokenNotRated',
+    inputs: [],
+  },
+] as const

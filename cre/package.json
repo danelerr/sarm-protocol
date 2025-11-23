@@ -9,7 +9,8 @@
     "deploy": "cre deploy workflows/ssa-refresh.ts"
   },
   "dependencies": {
-    "@chainlink/cre-sdk": "latest"
+    "@chainlink/cre-sdk": "^1.0.0",
+    "viem": "^2.39.3"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

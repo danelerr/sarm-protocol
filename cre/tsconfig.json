@@ -8,7 +8,10 @@
     "skipLibCheck": true,
     "strict": true,
     "resolveJsonModule": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": {
+      "@cre/*": ["./node_modules/@chainlink/cre-sdk/dist/*"]
+    }
   },
   "include": ["workflows/**/*"],
   "exclude": ["node_modules", "dist"]

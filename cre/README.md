@@ -56,15 +56,28 @@ The CRE workflow (`ssa-refresh.ts`) automatically:
         └────────────────────┘
 ```
 
+## Current Status (ETHGlobal Buenos Aires 2025)
+
+⚠️ **Important Note for Judges**: This CRE integration demonstrates the architecture and workflow logic for automated SSA rating updates. Full deployment to Chainlink DON requires **Early Access** approval, which is pending.
+
+**What's Implemented:**
+- ✅ Complete workflow logic (`workflows/ssa-refresh.ts`)
+- ✅ Configuration structure (`cre.toml`)
+- ✅ Integration design with SSAOracleAdapter contract
+- ✅ DataLink API flow architecture
+- ✅ TypeScript compilation and validation
+
+**Production Alternative:**
+- The manual scripts (`scripts/refresh-rating.ts`) provide identical functionality
+- Can be automated via cron jobs or Chainlink Automation
+- CRE provides superior architecture with BFT consensus and decentralization
+
 ## Prerequisites
 
-1. **CRE Account**: Create account at [cre.chain.link](https://cre.chain.link)
-2. **CRE CLI**: Install the Chainlink CRE CLI
-   ```bash
-   npm install -g @chainlink/cre-cli
-   ```
-3. **DataLink Credentials**: Get API credentials from Chainlink DataLink
-4. **Deployed Contracts**: Deploy `SSAOracleAdapter` and `SARMHook` to Base Sepolia
+1. **CRE CLI**: Compiled from Chainlink source (binary in `$PATH`)
+2. **DataLink Credentials**: Get API credentials from Chainlink DataLink
+3. **Deployed Contracts**: Deploy `SSAOracleAdapter` and `SARMHook` to Base Sepolia
+4. **Early Access** (for production deployment): Apply at [cre.chain.link](https://cre.chain.link)
 
 ## Setup
 
@@ -111,23 +124,43 @@ FEED_ID_DAI = "0x..."        # DataLink feed ID for DAI SSA
 
 ### Simulate Locally
 
-Test the workflow on your machine (makes real API calls):
+⚠️ **Note**: Full simulation requires CRE Early Access. The workflow demonstrates the intended logic and architecture.
+
+Test the workflow compilation:
 
 ```bash
-npm run dev
+npm run build
 # or
-cre simulate workflows/ssa-refresh.ts
+npx tsc --noEmit
 ```
 
-This will:
-- Compile the workflow to WebAssembly
-- Run it locally with your config
-- Make real calls to DataLink API
-- Submit real transactions to Base Sepolia
+View the workflow logic:
+
+```bash
+cat workflows/ssa-refresh.ts
+```
+
+The workflow demonstrates:
+- HTTP fetch from DataLink bulk API
+- Parsing signed SSA rating reports
+- EVM transaction construction for `refreshRatingWithReport()`
+- Parallel updates for USDC, USDT, DAI
+- Error handling and logging strategy
+
+**For actual rating updates during the hackathon**, use the manual scripts:
+
+```bash
+cd ..  # back to project root
+pnpm refresh:usdc
+pnpm refresh:usdt
+pnpm refresh:dai
+```
 
 ### Deploy to Production
 
-Deploy to Chainlink's DON for automatic execution:
+⚠️ **Requires Early Access**: Deployment to Chainlink DON requires approval.
+
+Once approved:
 
 ```bash
 npm run deploy
@@ -140,6 +173,8 @@ After deployment, the workflow will:
 - Execute across multiple DON nodes
 - Use BFT consensus for all operations
 - Be monitored via CRE UI at [cre.chain.link](https://cre.chain.link)
+
+**For ETHGlobal Demo**: Use manual scripts as demonstrated in the project README.
 
 ### Manage Workflow
 

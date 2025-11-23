@@ -1,0 +1,18 @@
+{
+  "schedule": "0 */5 * * * *",
+  "chainSelectorName": "ethereum-mainnet-base-1",
+  "ssaFeeds": [
+    {
+      "name": "USDC",
+      "feedContract": "0x3C72A4B35ba7e5E52e31F132794682d6A3fCAA21"
+    },
+    {
+      "name": "USDT",
+      "feedContract": "0x5c17bfd3dEffa9A352cfDfdEB8F68B5C8e3a2f54"
+    },
+    {
+      "name": "DAI",
+      "feedContract": "0x251f3763AaCBdcC8d62Ea74D7fb03B355836a18e"
+    }
+  ]
+}
