@@ -14,14 +14,11 @@ import {SSAOracleAdapter} from "../oracles/SSAOracleAdapter.sol";
 
 /**
  * @title SAGEHook
- * @notice Stablecoin Automated Risk Management Hook for Uniswap v4.
- * @dev Makes stablecoin liquidity "risk-aware" by reading S&P Global SSA ratings
- *      and applying dynamic fees and circuit breakers based on risk levels.
- *
- * Risk Modes:
- *   - NORMAL: Low ratings (1-2), normal operation
- *   - ELEVATED_RISK: Medium ratings (3), higher fees
- *   - FROZEN: High ratings (4-5), swaps blocked or heavily restricted
+ * @notice Uniswap v4 Hook implementing a reward-based, non-punitive risk model for stablecoins.
+ * @dev Risk-aware swap logic:
+ *   - NORMAL: Premium ratings (1-2), 30% fee discount (0.007%)
+ *   - ELEVATED_RISK: Standard ratings (3-5), normal fees (0.01%)
+ *   - No swap blocking - all swaps allowed, only fee adjustments
  *
  * Part of SAGE Protocol for ETHGlobal Buenos Aires 2025.
  */
@@ -32,7 +29,6 @@ contract SAGEHook is BaseHook {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error SwapBlocked_HighRisk();
     error TokenNotRated();
     error DynamicFeeRequired();
 
@@ -52,7 +48,7 @@ contract SAGEHook is BaseHook {
     /**
      * @notice Emitted when a pool transitions risk modes.
      * @param poolId ID of the pool.
-     * @param newMode New risk mode (NORMAL, ELEVATED_RISK, FROZEN).
+     * @param newMode New risk mode (NORMAL or ELEVATED_RISK).
      */
     event RiskModeChanged(PoolId indexed poolId, RiskMode newMode);
 
@@ -69,9 +65,8 @@ contract SAGEHook is BaseHook {
     //////////////////////////////////////////////////////////////*/
 
     enum RiskMode {
-        NORMAL,         // Ratings 1-2 (Excellent): 0.005% fee
-        ELEVATED_RISK,  // Ratings 3-4 (Good-Medium): 0.01%-0.02% fees
-        FROZEN          // Rating 5 (High): 0.04% fee or swaps blocked
+        NORMAL,         // Ratings 1-2: 0.007% (30% discount)
+        ELEVATED_RISK   // Ratings 3-5: 0.01% (normal fee)
     }
 
     struct RiskConfig {
@@ -103,13 +98,13 @@ contract SAGEHook is BaseHook {
     constructor(IPoolManager _poolManager, SSAOracleAdapter _oracle) BaseHook(_poolManager) {
         oracle = _oracle;
         
-        // Default thresholds:
-        // - Ratings 1-2: NORMAL (Excellent)
-        // - Ratings 3-4: ELEVATED_RISK (Good-Medium)
-        // - Rating 5: FROZEN (High risk)
+        // Config with thresholds that match S&P SSA rating scale (1-5):
+        // - Rating 1: NORMAL (Low risk)
+        // - Rating 2: NORMAL (Low-to-Moderate risk) 
+        // - Rating 3-5: ELEVATED_RISK (Standard risk, no discount)
         riskConfig = RiskConfig({
             elevatedRiskThreshold: 3,
-            frozenThreshold: 5
+            frozenThreshold: 5  // legacy, no longer used for blocking
         });
     }
 
@@ -147,7 +142,7 @@ contract SAGEHook is BaseHook {
     /**
      * @notice Called before a pool is initialized.
      * @dev Enforces that the pool is configured with DYNAMIC_FEE_FLAG.
-     *      This is critical because SARM needs to override fees based on risk ratings.
+     *      This is critical because SAGE needs to override fees based on risk ratings.
      */
     function _beforeInitialize(
         address,              /* sender */
@@ -196,18 +191,14 @@ contract SAGEHook is BaseHook {
         // Determine and apply risk mode
         RiskMode currentMode = _determineRiskMode(effectiveRating);
         
-        if (poolRiskMode[poolId] != currentMode) {
+        // Update pool risk mode if changed
+        RiskMode previousMode = poolRiskMode[poolId];
+        if (currentMode != previousMode) {
             poolRiskMode[poolId] = currentMode;
             emit RiskModeChanged(poolId, currentMode);
         }
 
-        // Apply risk policy
-        if (currentMode == RiskMode.FROZEN) {
-            // Circuit breaker: block swaps when risk is too high
-            revert SwapBlocked_HighRisk();
-        }
-
-        // Calculate dynamic LP fees based on effective rating
+        // Calculate dynamic fee (no blocking, only fee adjustments)
         uint24 baseFee = _feeForRating(effectiveRating);
 
         // Emit event for analytics and monitoring
@@ -235,35 +226,30 @@ contract SAGEHook is BaseHook {
     }
 
     /**
-     * @dev Determine risk mode based on effective rating.
+     * @notice Determines risk mode: NORMAL for ratings 1-2, ELEVATED_RISK for 3-5
      */
-    function _determineRiskMode(uint8 effectiveRating) internal view returns (RiskMode) {
-        if (effectiveRating >= riskConfig.frozenThreshold) {
-            return RiskMode.FROZEN;
-        } else if (effectiveRating >= riskConfig.elevatedRiskThreshold) {
-            return RiskMode.ELEVATED_RISK;
-        } else {
+    function _determineRiskMode(uint8 effectiveRating) internal pure returns (RiskMode) {
+        if (effectiveRating <= 2) {
             return RiskMode.NORMAL;
+        } else {
+            return RiskMode.ELEVATED_RISK;
         }
     }
 
     /**
-     * @dev Map an effective rating to a LP fee (in hundredths of a bip).
-     * New SSA-aligned fee bands:
-     *  - Ratings 1-2 (Excellent): 0.005% (50)
-     *  - Rating 3 (Good):         0.01% (100)
-     *  - Rating 4 (Medium):       0.02% (200)
-     *  - Rating 5 (High):         0.04% (400) [though 5 triggers FROZEN]
+     * @notice Reward-based fee schedule: 30% discount for premium stablecoins
+     * @dev Fee schedule:
+     *  - Rating 1-2: 0.007% (70 bps) - 30% discount
+     *  - Rating 3-5: 0.01% (100 bps) - normal fee
      */
     function _feeForRating(uint8 effectiveRating) internal pure returns (uint24) {
+        uint24 baseFee = 100; // 0.01% normal fee
+        
         if (effectiveRating <= 2) {
-            return 50;    // 0.005% - Excellent (1.0-2.0 SSA range)
-        } else if (effectiveRating == 3) {
-            return 100;   // 0.01% - Good (2.1-3.0 SSA range)
-        } else if (effectiveRating == 4) {
-            return 200;   // 0.02% - Medium (3.1-4.0 SSA range)
+            // 30% discount → 70% of base = 0.007%
+            return uint24((uint256(baseFee) * 70) / 100); // 70
         } else {
-            return 400;   // 0.04% - High (4.1-5.0 SSA range, normally frozen)
+            return baseFee; // 100
         }
     }
 }
