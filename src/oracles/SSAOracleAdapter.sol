@@ -17,7 +17,7 @@ import {IDataLinkVerifier} from "../interfaces/IDataLinkVerifier.sol";
  *   4 = Elevated risk (circuit breaker threshold)
  *   5 = High risk (full freeze)
  *
- * Part of SARM Protocol for ETHGlobal Buenos Aires 2025.
+ * Part of SAGE Protocol for ETHGlobal Buenos Aires 2025.
  */
 contract SSAOracleAdapter is Ownable {
     /*//////////////////////////////////////////////////////////////

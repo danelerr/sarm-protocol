@@ -1,4 +1,4 @@
-# SARM Protocol
+# SAGE Protocol
 
 **Stablecoin Automated Risk Management Protocol**
 
@@ -6,10 +6,11 @@ A Uniswap v4 Hook that makes stablecoin liquidity "risk-aware" using institution
 
 ## Overview
 
-SARM Protocol integrates S&P Global Stablecoin Stability Assessment (SSA) ratings into Uniswap v4 pools to:
-- Adjust pool fees dynamically based on stablecoin risk
-- Enforce risk modes and circuit breakers when ratings degrade
-- Provide LPs with protection against depeg events
+SAGE Protocol integrates S&P Global Stablecoin Stability Assessment (SSA) ratings into Uniswap v4 pools to:
+- **Reward high-quality stablecoins** with 30% fee discounts (ratings 1-2)
+- Apply standard pricing to normal stablecoins (ratings 3-5)
+- **No punitive measures** - swaps always allowed, only fee adjustments
+- Provide transparent risk signals to LPs and traders
 
 ## Built For
 
@@ -28,7 +29,7 @@ SARM Protocol integrates S&P Global Stablecoin Stability Assessment (SSA) rating
    - On-chain signature verification via DataLink verifier proxy
    - Emits `RatingUpdated` events for indexing
 
-2. **SARMHook** (`src/hooks/SARMHook.sol`)
+2. **SAGEHook** (`src/hooks/SAGEHook.sol`)
    - Uniswap v4 Hook implementing risk-aware swap logic
    - Reads ratings from SSAOracleAdapter
    - Applies dynamic fees and circuit breakers based on risk
@@ -40,6 +41,67 @@ SARM Protocol integrates S&P Global Stablecoin Stability Assessment (SSA) rating
 
 4. **MockERC20** / **MockVerifier** (`src/mocks/`)
    - Test contracts for development and testing
+
+## Quick Start Deployment
+
+### Prerequisites
+
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+- Private key with Base Sepolia ETH
+- Uniswap v4 PoolManager address (from ETHGlobal resources)
+
+### 1. Setup Environment
+
+```bash
+# Clone and setup
+git clone https://github.com/yourusername/sarm-protocol.git
+cd sarm-protocol
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env and set:
+# - PRIVATE_KEY (your deployer key)
+# - POOL_MANAGER (Uniswap v4 on Base Sepolia)
+# - Token addresses are pre-filled for Base Sepolia
+```
+
+### 2. Deploy Everything
+
+```bash
+# Option A: Using helper script
+./script/deploy.sh sepolia
+
+# Option B: Direct forge command
+forge script script/DeploySARM.s.sol \
+  --rpc-url $BASE_SEPOLIA_RPC_URL \
+  --broadcast \
+  --verify
+```
+
+This single script will:
+1. Deploy `SSAOracleAdapter` (with mocked ratings)
+2. Set hardcoded ratings: USDC=1, USDT=1, DAI=3
+3. Deploy `SAGEHook` with oracle integration
+4. Initialize 3 pools with dynamic fees:
+   - USDC/USDT (both rating 1 → 70 bps fee, 30% discount)
+   - USDT/DAI (max rating 3 → 100 bps fee, normal)
+   - DAI/USDC (max rating 3 → 100 bps fee, normal)
+
+### 3. Verify Deployment
+
+```bash
+# Check oracle ratings
+cast call <ORACLE_ADDRESS> "getRating(address)" <USDC_ADDRESS>
+
+# Should return (1, <timestamp>) for USDC
+```
+
+📚 **Full deployment guide**: See [script/README.md](script/README.md) for:
+- Hook address mining (CREATE2)
+- Manual rating updates
+- Troubleshooting
+- Next steps (liquidity, swaps)
 
 ## Development Setup
 
@@ -76,15 +138,25 @@ forge test -vvv
 sarm-protocol/
 ├── src/
 │   ├── hooks/
-│   │   └── SARMHook.sol           # Main Uniswap v4 Hook
+│   │   └── SAGEHook.sol           # Main Uniswap v4 Hook
 │   ├── oracles/
 │   │   └── SSAOracleAdapter.sol   # Rating oracle adapter
+│   ├── interfaces/
+│   │   └── IDataLinkVerifier.sol  # DataLink verifier interface
 │   └── mocks/
 │       └── MockERC20.sol          # Test tokens
 ├── test/
-│   └── SARMHook.t.sol             # Forge tests
+│   └── SAGEHook.t.sol             # Forge tests (26/26 passing)
 ├── script/
 │   └── Deploy.s.sol               # Deployment scripts
+├── cre/                           # Chainlink Runtime Environment
+│   ├── workflows/
+│   │   └── ssa-refresh.ts         # Automated rating updates
+│   ├── cre.toml                   # CRE configuration
+│   └── README.md                  # CRE setup guide
+├── scripts/                       # Manual rating refresh scripts
+│   ├── refresh-rating.ts          # Single token refresh
+│   └── refresh-all.ts             # Batch refresh
 ├── lib/                           # Dependencies (gitignored)
 ├── foundry.toml                   # Foundry configuration
 └── README.md
@@ -108,29 +180,48 @@ forge coverage
 
 ## Implementation Status
 
-### [x] Core Features (Complete)
+### ✅ Core Features (Complete)
 - [x] **SSAOracleAdapter** with manual rating setter (for testing/demo)
 - [x] **Chainlink DataLink integration** with pull-based verification
   - On-chain report verification via DataLink verifier proxy
   - `refreshRatingWithReport()` for automated rating updates
   - Staleness checks and rating normalization
-- [x] **SARMHook** with beforeSwap logic
-- [x] **Circuit breaker** for high-risk ratings (FROZEN mode)
-- [x] **Risk mode transitions** (NORMAL → ELEVATED_RISK → FROZEN)
-- [x] **Dynamic risk-adjusted fees** with override mechanism (0.05%/0.10%/0.30%)
+- [x] **Chainlink Runtime Environment (CRE) workflow**
+  - Complete workflow logic designed and implemented
+  - Demonstrates automated rating updates via cron trigger architecture
+  - HTTP capability for DataLink API + EVM write capability for on-chain updates
+  - Full documentation in `cre/README.md`
+  - **Note**: Full deployment requires CRE Early Access (application pending)
+- [x] **SAGEHook with REWARD-BASED MODEL** (NEW! 🎁)
+  - **30% fee discount** for premium stablecoins (ratings 1-2)
+  - **Standard pricing** for normal stablecoins (ratings 3-5)
+  - **NO circuit breakers** - swaps always allowed
+  - **NO punitive measures** - only rewards for quality
+- [x] **Dynamic fee flag enforcement** (beforeInitialize)
+- [x] **Dynamic risk-adjusted fees** (beforeSwap):
+  - Ratings 1-2: 0.007% (70 bps) - 30% discount ✨
+  - Ratings 3-5: 0.01% (100 bps) - Standard pricing
 - [x] **Event emission** for analytics (RiskCheck, RiskModeChanged, FeeOverrideApplied)
-- [x] **Off-chain scripts** for fetching DataLink reports and submitting to oracle
-- [x] **Comprehensive Forge tests** (25/25 passing, including DataLink integration)
+- [x] **Off-chain scripts** for manual DataLink report fetching (fully functional for demo)
+- [x] **Comprehensive Forge tests** (26/26 passing ✅)
 
-### [WIP] Future Enhancements
-- [ ] Chainlink Automation for periodic rating refreshes
-- [ ] The Graph subgraph for event indexing and analytics
-- [ ] Risk dashboard UI showing ratings and fee history
-- [ ] LP analytics dashboard (fees earned by risk level)
+### 🔄 Recent Updates
+- **Nov 23, 2025**: Complete model transformation from punitive to reward-based
+  - Eliminated FROZEN state and circuit breakers
+  - Simplified to 2-tier fee structure (discount vs normal)
+  - All 26 tests updated and passing
+  - See [REWARD_MODEL.md](./REWARD_MODEL.md) for detailed explanation
+
+### 🚀 Future Enhancements
+- [ ] **CRE Early Access**: Deploy to production DON (requires approval at cre.chain.link)
+- [ ] **The Graph subgraph** for event indexing and analytics
+- [ ] **Risk dashboard UI** showing ratings and fee history
+- [ ] **LP analytics dashboard** (fees earned by risk level)
+- [ ] **Additional stablecoins** (FRAX, TUSD, etc.)
 
 ## Chainlink DataLink Integration
 
-SARM Protocol uses **Chainlink DataLink** to bring institutional-grade S&P Global SSA ratings on-chain with cryptographic verification.
+SAGE Protocol uses **Chainlink DataLink** to bring institutional-grade S&P Global SSA ratings on-chain with cryptographic verification.
 
 ### Architecture
 
@@ -163,7 +254,7 @@ SARM Protocol uses **Chainlink DataLink** to bring institutional-grade S&P Globa
        │ 7. Hook reads rating on next swap
        ↓
 ┌──────────────────────────────────────────────────────────┐
-│  SARMHook.beforeSwap()                                   │
+│  SAGEHook.beforeSwap()                                   │
 │  • Applies dynamic fees based on rating                  │
 │  • Enforces circuit breaker if rating ≥ 4                │
 └──────────────────────────────────────────────────────────┘
@@ -255,74 +346,113 @@ DATALINK_SECRET=your_secret
 
 ### Usage
 
-**Manual refresh:**
+**Option 1: Chainlink Runtime Environment (CRE) - Recommended**
+
+SAGE Protocol includes a CRE workflow for automated, decentralized rating updates:
+
 ```bash
+cd cre
+
+# Setup secrets
+cre secrets set DATALINK_USER "your-username"
+cre secrets set DATALINK_SECRET "your-secret"
+cre secrets set PRIVATE_KEY "0x..."
+
+# Configure cre.toml with contract addresses and feed IDs
+
+# Test locally
+npm run dev
+
+# Deploy to production DON
+npm run deploy
+```
+
+**Benefits:**
+- Automated execution every 10 minutes via cron trigger
+- Byzantine Fault Tolerant consensus across DON nodes
+- No single point of failure
+- Monitoring via CRE UI at [cre.chain.link](https://cre.chain.link)
+
+See [`cre/README.md`](cre/README.md) for complete setup instructions.
+
+**Option 2: Manual Scripts (Local/Testing)**
+
+For local development and testing:
+
+```bash
+pnpm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your DataLink credentials
+
+# Manual refresh
 pnpm refresh:usdc  # Refresh USDC rating
 pnpm refresh:usdt  # Refresh USDT rating
 pnpm refresh:all   # Refresh all tokens
 ```
 
-**Production automation:**
-- Deploy script to Chainlink Automation
-- Or use cron job for periodic refreshes
-- Monitor with alerting on rating changes
-
-For detailed setup, see [`scripts/README.md`](scripts/README.md).
+For detailed script setup, see [`scripts/README.md`](scripts/README.md).
 
 **Dynamic Risk-Adjusted Fees:**
 
-SARM Protocol implements dynamic LP fees that adjust automatically based on the credit risk of the stablecoins in a pool. This ensures LPs are compensated appropriately for the risk they bear, while maintaining competitive fees for high-quality stablecoins.
+SAGE Protocol implements dynamic LP fees that **reward high-quality stablecoins** with discounts, while maintaining standard pricing for normal stablecoins. This incentivizes liquidity provision for safe assets without punitive measures for standard ones.
 
-**Fee Structure:**
+**Fee Structure (Reward-Based Model):**
 
-| Credit Rating | Risk Level | LP Fee | Basis Points | Use Case |
-|--------------|------------|--------|--------------|----------|
-| 1-2 | NORMAL | 500 | 0.05% (5 bps) | High-quality stablecoins (USDC, USDT) |
-| 3 | ELEVATED_RISK | 1000 | 0.10% (10 bps) | Stablecoins showing stress signals |
-| 4-5 | FROZEN | 3000* | 0.30% (30 bps) | Depeg risk/Circuit breaker active |
+| Credit Rating | Risk Level | LP Fee | Basis Points | Discount | Description |
+|--------------|------------|--------|--------------|----------|-------------|
+| 1-2 | NORMAL | 70 | 0.007% (0.7 bps) | **30% OFF** 🎁 | Premium stablecoins rewarded |
+| 3-5 | ELEVATED_RISK | 100 | 0.01% (1 bps) | Standard | Normal pricing, no penalties |
 
-*Note: Rating 4+ typically triggers the circuit breaker, blocking swaps entirely. The 0.30% fee would only apply if special exceptions are implemented.
+**Philosophy:**
+- ✅ **Reward quality** - Premium tokens get 30% fee discount
+- ✅ **No punishment** - All ratings allow swaps with fair pricing
+- ✅ **Simplicity** - Only 2 fee tiers, easy to understand
+- ✅ **Predictability** - No surprises, no circuit breakers
 
 **How It Works:**
 
 1. **Before every swap**, the hook queries both token ratings from the oracle
 2. The **effective rating** is calculated as `max(rating0, rating1)` (worst-case)
-3. The hook maps the effective rating to the appropriate fee using `_feeForRating()`
+3. The hook maps the effective rating to the appropriate fee:
+   - Ratings 1-2 → 70 bps (30% discount)
+   - Ratings 3-5 → 100 bps (standard)
 4. The fee is returned with `LPFeeLibrary.OVERRIDE_FEE_FLAG` to apply for that specific swap
 5. A `FeeOverrideApplied` event is emitted for analytics and indexing
 
 **Benefits:**
 
-- **Risk Compensation**: LPs earn higher fees when holding riskier assets
-- **Market Signals**: Fee changes provide real-time risk signals to traders
-- **Capital Efficiency**: Low fees on safe pairs maximize trading volume
-- **Circuit Breaker Integration**: Seamlessly works with risk gating system
+- **Incentivizes Quality**: LPs earn more competitive fees with premium stablecoins
+- **Market Signals**: Fee differences provide transparent risk signals
+- **Capital Efficiency**: Discounts maximize trading volume on safe pairs
+- **No Disruption**: Trading always available, no sudden blocks
 
 ## Risk Rating Scale
 
 S&P Global SSA ratings map to SARM risk modes:
 
-| Rating | S&P Assessment | SARM Mode | Action |
-|--------|---------------|-----------|--------|
-| **1** | Excellent stability | NORMAL | 0.05% fee |
-| **2** | Good stability | NORMAL | 0.05% fee |
-| **3** | Moderate stability | ELEVATED_RISK | 0.10% fee |
-| **4** | High depeg risk | FROZEN | Swaps blocked |
-| **5** | Critical/Imminent depeg | FROZEN | Swaps blocked |
+| Rating | S&P Assessment | SARM Mode | Fee | Action |
+|--------|---------------|-----------|-----|--------|
+| **1** | Excellent stability | NORMAL | 0.007% (30% discount) | ✅ Reward |
+| **2** | Good stability | NORMAL | 0.007% (30% discount) | ✅ Reward |
+| **3** | Moderate stability | ELEVATED_RISK | 0.01% (standard) | ✅ Standard |
+| **4** | Higher risk | ELEVATED_RISK | 0.01% (standard) | ✅ Standard |
+| **5** | High risk | ELEVATED_RISK | 0.01% (standard) | ✅ Standard |
 
 **Risk Modes:**
 
-- **NORMAL**: Ratings 1-2, normal operation with competitive fees
-- **ELEVATED_RISK**: Rating 3, higher fees to compensate for increased risk
-- **FROZEN**: Ratings 4-5, circuit breaker activated, all swaps blocked
+- **NORMAL**: Ratings 1-2, premium tokens with 30% fee discount
+- **ELEVATED_RISK**: Ratings 3-5, standard tokens with normal pricing
+- ~~**FROZEN**~~: Removed - no circuit breakers or swap blocking
 
 ## Key Features
 
-### [SECURITY] Circuit Breaker Protection
-Automatically blocks swaps when stablecoin ratings indicate high depeg risk, protecting LPs from toxic flow.
+### [REWARDS] Discount for Quality
+Automatically rewards high-quality stablecoins (ratings 1-2) with 30% fee discount, incentivizing liquidity for safe assets.
 
-### [FEES] Dynamic Risk-Adjusted Fees
-LP fees adjust in real-time based on S&P Global credit ratings, ensuring proper risk compensation.
+### [FEES] Two-Tier Pricing
+Simple fee structure: discount (70 bps) for premium, standard (100 bps) for normal. No punitive measures.
 
 ### [ANALYTICS] Full Transparency
 All risk assessments and fee changes emit events for on-chain analytics and The Graph indexing.
@@ -332,16 +462,22 @@ Integrates **S&P Global SSA ratings** via **Chainlink DataLink** with on-chain c
 
 ## Chainlink Bounty Highlights
 
-SARM Protocol demonstrates advanced Chainlink integration:
+SAGE Protocol demonstrates advanced Chainlink integration:
 
 [x] **DataLink Pull-Based Architecture**: Fetches signed reports off-chain, verifies on-chain  
 [x] **On-Chain Verification**: Uses DataLink verifier proxy for DON signature validation  
 [x] **Smart Contract State Changes**: Ratings directly control Uniswap v4 Hook behavior  
 [x] **S&P Global SSA Feeds**: Real institutional-grade credit ratings for stablecoins  
-[x] **Production-Ready**: Complete off-chain scripts + staleness checks + error handling  
-[x] **Fully Tested**: 25 comprehensive tests including DataLink integration scenarios  
+[x] **Chainlink Runtime Environment (CRE)**: Decentralized automated execution  
+  - Cron-triggered workflows (every 10 minutes)
+  - Byzantine Fault Tolerant consensus across DON nodes
+  - HTTP capability for DataLink API integration
+  - EVM write capability for on-chain oracle updates
+  - Eliminates single points of failure
+[x] **Production-Ready**: Complete CRE workflow + manual scripts + staleness checks + error handling  
+[x] **Fully Tested**: 26 comprehensive tests including DataLink integration + beforeInitialize validation  
 
-**Key Innovation**: Hook logic (fees + circuit breaker) is **entirely driven by Chainlink-fed SSA ratings**. No external dependencies. True decentralized risk management.
+**Key Innovation**: Hook logic (fees + circuit breaker) is **entirely driven by Chainlink-fed SSA ratings**. No external dependencies. True decentralized risk management with automated updates via CRE.
 
 ## License
 

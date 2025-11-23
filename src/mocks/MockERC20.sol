@@ -5,7 +5,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * @title MockERC20
- * @notice Simple mintable ERC20 token for testing stablecoin pairs in SARM Protocol.
+ * @notice Simple mintable ERC20 token for testing stablecoin pairs in SAGE Protocol.
  * @dev Used to simulate USDC, USDT, DAI, etc. in local development and tests.
  */
 contract MockERC20 is ERC20 {

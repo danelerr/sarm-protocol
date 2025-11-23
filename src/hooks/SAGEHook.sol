@@ -13,7 +13,7 @@ import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
 import {SSAOracleAdapter} from "../oracles/SSAOracleAdapter.sol";
 
 /**
- * @title SARMHook
+ * @title SAGEHook
  * @notice Stablecoin Automated Risk Management Hook for Uniswap v4.
  * @dev Makes stablecoin liquidity "risk-aware" by reading S&P Global SSA ratings
  *      and applying dynamic fees and circuit breakers based on risk levels.
@@ -23,9 +23,9 @@ import {SSAOracleAdapter} from "../oracles/SSAOracleAdapter.sol";
  *   - ELEVATED_RISK: Medium ratings (3), higher fees
  *   - FROZEN: High ratings (4-5), swaps blocked or heavily restricted
  *
- * Part of SARM Protocol for ETHGlobal Buenos Aires 2025.
+ * Part of SAGE Protocol for ETHGlobal Buenos Aires 2025.
  */
-contract SARMHook is BaseHook {
+contract SAGEHook is BaseHook {
     using PoolIdLibrary for PoolKey;
 
     /*//////////////////////////////////////////////////////////////

@@ -13,16 +13,16 @@ import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {LPFeeLibrary} from "@uniswap/v4-core/src/libraries/LPFeeLibrary.sol";
 
-import {SARMHook} from "../src/hooks/SARMHook.sol";
+import {SAGEHook} from "../src/hooks/SAGEHook.sol";
 import {SSAOracleAdapter} from "../src/oracles/SSAOracleAdapter.sol";
 import {MockERC20} from "../src/mocks/MockERC20.sol";
 import {MockVerifier} from "../src/mocks/MockVerifier.sol";
 
 /**
- * @title SARMHookTest
- * @notice Comprehensive tests for SARM Protocol hook and oracle adapter.
+ * @title SAGEHookTest
+ * @notice Comprehensive tests for SAGE Protocol hook and oracle adapter.
  */
-contract SARMHookTest is Test, Deployers {
+contract SAGEHookTest is Test, Deployers {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
 
@@ -33,7 +33,7 @@ contract SARMHookTest is Test, Deployers {
     // Re-declare events for testing
     event RatingUpdated(address indexed token, uint8 oldRating, uint8 newRating);
     event FeedIdSet(address indexed token, bytes32 feedId);
-    event RiskModeChanged(PoolId indexed poolId, SARMHook.RiskMode mode);
+    event RiskModeChanged(PoolId indexed poolId, SAGEHook.RiskMode mode);
     event RiskCheck(PoolId indexed poolId, uint8 rating0, uint8 rating1, uint8 effectiveRating);
     event FeeOverrideApplied(PoolId indexed poolId, uint8 rating, uint24 fee);
 
@@ -42,13 +42,23 @@ contract SARMHookTest is Test, Deployers {
     //////////////////////////////////////////////////////////////*/
 
     SSAOracleAdapter public oracle;
-    SARMHook public hook;
+    SAGEHook public hook;
     MockVerifier public mockVerifier;
     
     MockERC20 public mockUSDC;
     MockERC20 public mockUSDT;
     MockERC20 public mockDAI;
 
+    // Three pools for comprehensive testing
+    PoolKey public poolKeyUSDC_USDT;
+    PoolKey public poolKeyUSDC_DAI;
+    PoolKey public poolKeyUSDT_DAI;
+    
+    PoolId public poolIdUSDC_USDT;
+    PoolId public poolIdUSDC_DAI;
+    PoolId public poolIdUSDT_DAI;
+    
+    // Legacy single pool references (for backward compatibility with existing tests)
     PoolKey public poolKey;
     PoolId public poolId;
 
@@ -82,53 +92,118 @@ contract SARMHookTest is Test, Deployers {
         address hookAddress = address(flags);
         
         // Deploy hook at the expected address using vm.etch (for testing)
-        deployCodeTo("SARMHook.sol", abi.encode(manager, oracle), hookAddress);
-        hook = SARMHook(hookAddress);
+        deployCodeTo("SAGEHook.sol", abi.encode(manager, oracle), hookAddress);
+        hook = SAGEHook(hookAddress);
 
-        // Initialize pool with hook
-        poolKey = PoolKey({
+        // Hardcode default ratings (simulates real-world scenario without CRE)
+        // USDC and USDT: top tier (rating 1) -> 30% discount
+        // DAI: less rated (rating 4) -> normal pricing
+        oracle.setRatingManual(address(mockUSDC), 1);
+        oracle.setRatingManual(address(mockUSDT), 1);
+        oracle.setRatingManual(address(mockDAI), 4);
+
+        // Initialize three pools with the hook
+        // Pool 1: USDC/USDT (both rating 1 -> discount)
+        poolKeyUSDC_USDT = PoolKey({
             currency0: Currency.wrap(address(mockUSDC)),
             currency1: Currency.wrap(address(mockUSDT)),
-            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG, // Dynamic fees
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
             tickSpacing: 60,
             hooks: hook
         });
-        poolId = poolKey.toId();
+        poolIdUSDC_USDT = poolKeyUSDC_USDT.toId();
+        manager.initialize(poolKeyUSDC_USDT, SQRT_PRICE_1_1);
 
-        // Initialize the pool
-        manager.initialize(poolKey, SQRT_PRICE_1_1);
+        // Pool 2: USDC/DAI (USDC rating 1, DAI rating 4 -> normal fee)
+        poolKeyUSDC_DAI = PoolKey({
+            currency0: Currency.wrap(address(mockUSDC)),
+            currency1: Currency.wrap(address(mockDAI)),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            tickSpacing: 60,
+            hooks: hook
+        });
+        poolIdUSDC_DAI = poolKeyUSDC_DAI.toId();
+        manager.initialize(poolKeyUSDC_DAI, SQRT_PRICE_1_1);
+
+        // Pool 3: USDT/DAI (USDT rating 1, DAI rating 4 -> normal fee)
+        poolKeyUSDT_DAI = PoolKey({
+            currency0: Currency.wrap(address(mockUSDT)),
+            currency1: Currency.wrap(address(mockDAI)),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            tickSpacing: 60,
+            hooks: hook
+        });
+        poolIdUSDT_DAI = poolKeyUSDT_DAI.toId();
+        manager.initialize(poolKeyUSDT_DAI, SQRT_PRICE_1_1);
+
+        // Backward compatibility: default to USDC/USDT pool
+        poolKey = poolKeyUSDC_USDT;
+        poolId = poolIdUSDC_USDT;
 
         // Mint tokens to test users
         mockUSDC.mint(ALICE, 1_000_000e6);
         mockUSDT.mint(ALICE, 1_000_000e6);
+        mockDAI.mint(ALICE, 1_000_000e18);
         mockUSDC.mint(BOB, 1_000_000e6);
         mockUSDT.mint(BOB, 1_000_000e6);
+        mockDAI.mint(BOB, 1_000_000e18);
 
         // Approve tokens for pool manager
         vm.startPrank(ALICE);
         mockUSDC.approve(address(swapRouter), type(uint256).max);
         mockUSDT.approve(address(swapRouter), type(uint256).max);
+        mockDAI.approve(address(swapRouter), type(uint256).max);
         mockUSDC.approve(address(modifyLiquidityRouter), type(uint256).max);
         mockUSDT.approve(address(modifyLiquidityRouter), type(uint256).max);
+        mockDAI.approve(address(modifyLiquidityRouter), type(uint256).max);
         vm.stopPrank();
 
         vm.startPrank(BOB);
         mockUSDC.approve(address(swapRouter), type(uint256).max);
         mockUSDT.approve(address(swapRouter), type(uint256).max);
+        mockDAI.approve(address(swapRouter), type(uint256).max);
         vm.stopPrank();
 
-        // Add initial liquidity
-        vm.prank(ALICE);
+        // Add initial liquidity to all three pools
+        vm.startPrank(ALICE);
+        
+        // Pool 1: USDC/USDT
         modifyLiquidityRouter.modifyLiquidity(
-            poolKey,
+            poolKeyUSDC_USDT,
             IPoolManager.ModifyLiquidityParams({
                 tickLower: -60,
                 tickUpper: 60,
-                liquidityDelta: 1000e6, // 1000 USDC worth of liquidity
+                liquidityDelta: 1000e6,
                 salt: bytes32(0)
             }),
             ZERO_BYTES
         );
+
+        // Pool 2: USDC/DAI
+        modifyLiquidityRouter.modifyLiquidity(
+            poolKeyUSDC_DAI,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: -60,
+                tickUpper: 60,
+                liquidityDelta: 1000e6,
+                salt: bytes32(0)
+            }),
+            ZERO_BYTES
+        );
+
+        // Pool 3: USDT/DAI
+        modifyLiquidityRouter.modifyLiquidity(
+            poolKeyUSDT_DAI,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: -60,
+                tickUpper: 60,
+                liquidityDelta: 1000e6,
+                salt: bytes32(0)
+            }),
+            ZERO_BYTES
+        );
+        
+        vm.stopPrank();
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -136,14 +211,14 @@ contract SARMHookTest is Test, Deployers {
     //////////////////////////////////////////////////////////////*/
 
     function test_OracleAdapter_SetRatingManual() public {
-        // Set rating for USDC
+        // USDC already rated 1 in setUp, so updating to 3
         vm.expectEmit(true, false, false, true);
-        emit RatingUpdated(address(mockUSDC), 0, 1);
+        emit RatingUpdated(address(mockUSDC), 1, 3);
         
-        oracle.setRatingManual(address(mockUSDC), 1);
+        oracle.setRatingManual(address(mockUSDC), 3);
 
         (uint8 rating, uint256 lastUpdated) = oracle.getRating(address(mockUSDC));
-        assertEq(rating, 1);
+        assertEq(rating, 3);
         assertEq(lastUpdated, block.timestamp);
     }
 
@@ -170,8 +245,10 @@ contract SARMHookTest is Test, Deployers {
     }
 
     function test_OracleAdapter_RevertTokenNotRated() public {
+        // Use a new unrated token (mockDAI is now rated in setUp)
+        MockERC20 unratedToken = new MockERC20("Unrated", "UNRATED", 18);
         vm.expectRevert(SSAOracleAdapter.TokenNotRated.selector);
-        oracle.getRating(address(mockDAI));
+        oracle.getRating(address(unratedToken));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -193,7 +270,7 @@ contract SARMHookTest is Test, Deployers {
         manager.initialize(badKey, SQRT_PRICE_1_1);
     }
 
-    function test_SARMHook_SwapWithLowRisk() public {
+    function test_SAGEHook_SwapWithLowRisk() public {
         // Set low risk ratings (1-2)
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 2);
@@ -215,10 +292,10 @@ contract SARMHookTest is Test, Deployers {
         );
 
         // Check that pool is in NORMAL mode
-        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.NORMAL));
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.NORMAL));
     }
 
-    function test_SARMHook_SwapWithElevatedRisk() public {
+    function test_SAGEHook_SwapWithElevatedRisk() public {
         // Set medium risk rating (3)
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 3);
@@ -240,17 +317,18 @@ contract SARMHookTest is Test, Deployers {
         );
 
         // Check that pool is in ELEVATED_RISK mode
-        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.ELEVATED_RISK));
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
     }
 
-    function test_SARMHook_SwapBlockedHighRisk() public {
-        // Set high risk rating (5+)
-        oracle.setRatingManual(address(mockUSDC), 2);
+    function test_DynamicFees_HighRatingPaysNormalFee() public {
+        // Rating alto (5) -> fee normal = 100, sin revert
+        oracle.setRatingManual(address(mockUSDC), 5);
         oracle.setRatingManual(address(mockUSDT), 5);
 
-        // Attempt swap - should revert
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolId, 5, 100);
+
         vm.prank(BOB);
-        vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -264,9 +342,12 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
+
+        // Debe estar en modo ELEVATED_RISK (pero solo significa "sin descuento")
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
     }
 
-    function test_SARMHook_RiskModeTransition() public {
+    function test_SAGEHook_RiskModeTransition() public {
         // Start with low risk
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 1);
@@ -286,14 +367,14 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
-        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.NORMAL));
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.NORMAL));
 
         // Degrade rating to elevated risk
         oracle.setRatingManual(address(mockUSDT), 3);
 
         // Second swap - should transition to ELEVATED_RISK
         vm.expectEmit(true, false, false, true);
-        emit RiskModeChanged(poolId, SARMHook.RiskMode.ELEVATED_RISK);
+        emit RiskModeChanged(poolId, SAGEHook.RiskMode.ELEVATED_RISK);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -309,14 +390,13 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
-        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.ELEVATED_RISK));
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
 
-        // Degrade rating to frozen
+        // Degrade rating to 5 - should still work (no blocking)
         oracle.setRatingManual(address(mockUSDT), 5);
 
-        // Third swap - should revert (FROZEN)
+        // Third swap - should succeed (no FROZEN state anymore)
         vm.prank(BOB);
-        vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -330,16 +410,21 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
+        // Still in ELEVATED_RISK mode (5 is standard, not frozen)
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
     }
 
-    function test_SARMHook_EffectiveRatingUsesMax() public {
+    function test_SAGEHook_EffectiveRatingUsesMax() public {
         // Set different ratings - effective rating should be the maximum
         oracle.setRatingManual(address(mockUSDC), 2);
         oracle.setRatingManual(address(mockUSDT), 5);
 
-        // Swap should be blocked because max(2, 5) = 5 >= frozenThreshold
+        // Swap should work because rating 5 no longer blocks (max(2, 5) = 5)
+        // Should use ELEVATED_RISK mode with normal fee (100)
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolId, 5, 100);
+        
         vm.prank(BOB);
-        vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -353,19 +438,23 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
 
         // Now set both to low ratings
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 2);
 
-        // Swap should succeed because max(1, 2) = 2 < frozenThreshold
+        // Swap should succeed with discount because max(1, 2) = 2
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolId, 2, 70);
+        
         vm.prank(BOB);
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
-                zeroForOne: true,
+                zeroForOne: false,
                 amountSpecified: -100e6,
-                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+                sqrtPriceLimitX96: MAX_PRICE_LIMIT
             }),
             PoolSwapTest.TestSettings({
                 takeClaims: false,
@@ -373,9 +462,10 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.NORMAL));
     }
 
-    function test_SARMHook_EventsEmitted() public {
+    function test_SAGEHook_EventsEmitted() public {
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 2);
 
@@ -399,16 +489,32 @@ contract SARMHookTest is Test, Deployers {
         );
     }
 
-    function test_SARMHook_RevertTokenNotRated() public {
-        // Set rating only for one token
-        oracle.setRatingManual(address(mockUSDC), 1);
-        // mockUSDT is not rated
+    function test_SAGEHook_RevertTokenNotRated() public {
+        // Create pool with unrated tokens (USDC/USDT are rated in setUp)
+        MockERC20 unratedToken0 = new MockERC20("Unrated0", "UNRATED0", 6);
+        MockERC20 unratedToken1 = new MockERC20("Unrated1", "UNRATED1", 6);
 
-        // Swap should revert because USDT is not rated
+        // Ensure currency0 < currency1
+        (address token0, address token1) = address(unratedToken0) < address(unratedToken1)
+            ? (address(unratedToken0), address(unratedToken1))
+            : (address(unratedToken1), address(unratedToken0));
+
+        PoolKey memory newPoolKey = PoolKey({
+            currency0: Currency.wrap(token0),
+            currency1: Currency.wrap(token1),
+            fee: LPFeeLibrary.DYNAMIC_FEE_FLAG,
+            tickSpacing: 10,
+            hooks: hook
+        });
+
+        // Initialize pool
+        manager.initialize(newPoolKey, SQRT_PRICE_1_1);
+
+        // Swap should revert because tokens are not rated
         vm.prank(BOB);
         vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(
-            poolKey,
+            newPoolKey,
             IPoolManager.SwapParams({
                 zeroForOne: true,
                 amountSpecified: -100e6,
@@ -471,15 +577,14 @@ contract SARMHookTest is Test, Deployers {
             ZERO_BYTES
         );
         console2.log("Swap 2: Success (ELEVATED_RISK mode)");
-        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.ELEVATED_RISK));
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
 
-        // USDT depegs! Rating goes to 5
-        console2.log("\nStage 3: USDT depeg - rating = 5");
+        // USDT rating degrades to 5 but swap still works
+        console2.log("\nStage 3: USDT rating = 5 (high risk but not blocked)");
         oracle.setRatingManual(address(mockUSDT), 5);
         
-        // Circuit breaker activates
+        // Swap still works - just pays normal fee (no discount)
         vm.prank(BOB);
-        vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -493,20 +598,21 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
-        console2.log("Swap 3: BLOCKED - Circuit breaker activated!");
+        console2.log("Swap 3: Success - Normal fee applied (no blocking)");
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
 
         // USDT recovers
         console2.log("\nStage 4: USDT recovers - rating = 2");
         oracle.setRatingManual(address(mockUSDT), 2);
         
-        // Normal operation resumes
+        // Normal operation resumes with discount
         vm.prank(BOB);
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
-                zeroForOne: true,
+                zeroForOne: false,  // Changed direction to avoid price limit issue
                 amountSpecified: -200e6,
-                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+                sqrtPriceLimitX96: MAX_PRICE_LIMIT
             }),
             PoolSwapTest.TestSettings({
                 takeClaims: false,
@@ -515,7 +621,7 @@ contract SARMHookTest is Test, Deployers {
             ZERO_BYTES
         );
         console2.log("Swap 4: Success (NORMAL mode) - Market normalized");
-        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.NORMAL));
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.NORMAL));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -523,13 +629,13 @@ contract SARMHookTest is Test, Deployers {
     //////////////////////////////////////////////////////////////*/
 
     function test_DynamicFees_LowRiskFee() public {
-        // Set low risk ratings (1-2) -> should get 0.005% fee (50)
+        // Set low risk ratings (1-2) -> should get 0.007% fee (70, 30% discount)
         oracle.setRatingManual(address(mockUSDC), 2);
         oracle.setRatingManual(address(mockUSDT), 2);
 
-        // Expect FeeOverrideApplied event with 50 (0.005%)
+        // Expect FeeOverrideApplied event with 70 (0.007%, 30% discount)
         vm.expectEmit(true, true, true, true);
-        emit FeeOverrideApplied(poolId, 2, 50);
+        emit FeeOverrideApplied(poolId, 2, 70);
 
         vm.prank(BOB);
         swapRouter.swap(
@@ -546,7 +652,7 @@ contract SARMHookTest is Test, Deployers {
             ZERO_BYTES
         );
 
-        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.NORMAL));
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.NORMAL));
     }
 
     function test_DynamicFees_ModerateRiskFee() public {
@@ -573,7 +679,7 @@ contract SARMHookTest is Test, Deployers {
             ZERO_BYTES
         );
 
-        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SARMHook.RiskMode.ELEVATED_RISK));
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
     }
 
     function test_DynamicFees_FeeIncreasesWithRisk() public {
@@ -583,9 +689,9 @@ contract SARMHookTest is Test, Deployers {
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 1);
 
-        console2.log("Rating 1: Fee should be 50 (0.005%)");
+        console2.log("Rating 1: Fee should be 70 (0.007%, 30% discount)");
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 1, 50);
+        emit FeeOverrideApplied(poolId, 1, 70);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -605,9 +711,9 @@ contract SARMHookTest is Test, Deployers {
         // Increase to rating 2 (still low risk)
         oracle.setRatingManual(address(mockUSDT), 2);
 
-        console2.log("Rating 2: Fee should still be 50 (0.005%)");
+        console2.log("Rating 2: Fee should still be 70 (0.007%, 30% discount)");
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 2, 50);
+        emit FeeOverrideApplied(poolId, 2, 70);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -655,7 +761,7 @@ contract SARMHookTest is Test, Deployers {
 
         // First swap
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 2, 50);
+        emit FeeOverrideApplied(poolId, 2, 70);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -674,7 +780,7 @@ contract SARMHookTest is Test, Deployers {
 
         // Second swap - event should be emitted again
         vm.expectEmit(true, false, false, true);
-        emit FeeOverrideApplied(poolId, 2, 50);
+        emit FeeOverrideApplied(poolId, 2, 70);
         
         vm.prank(BOB);
         swapRouter.swap(
@@ -692,19 +798,20 @@ contract SARMHookTest is Test, Deployers {
         );
     }
 
-    function test_DynamicFees_HighRiskNoFeeApplied() public {
-        // Set high risk rating (5) - swap should be blocked before fee is applied
-        oracle.setRatingManual(address(mockUSDC), 2);
-        oracle.setRatingManual(address(mockUSDT), 5);
+    function test_DynamicFees_DiscountForBestRatings() public {
+        // Ratings top: 1 y 2 -> se espera 70 (0.007%) en lugar de 100
+        oracle.setRatingManual(address(mockUSDC), 1);
+        oracle.setRatingManual(address(mockUSDT), 2);
 
-        // Swap should revert, so FeeOverrideApplied event should NOT be emitted
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolId, 2, 70);
+
         vm.prank(BOB);
-        vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(
             poolKey,
             IPoolManager.SwapParams({
                 zeroForOne: true,
-                amountSpecified: -100e6,
+                amountSpecified: -1000e6,
                 sqrtPriceLimitX96: MIN_PRICE_LIMIT
             }),
             PoolSwapTest.TestSettings({
@@ -713,6 +820,9 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
+
+        // Debe estar en modo NORMAL (= par con descuento)
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.NORMAL));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -757,9 +867,9 @@ contract SARMHookTest is Test, Deployers {
         // Create a fake report (content doesn't matter since verifier is mocked)
         bytes memory fakeReport = abi.encodePacked("fake_report_data");
 
-        // Expect RatingUpdated event
+        // Expect RatingUpdated event (USDC already rated 1 in setUp)
         vm.expectEmit(true, false, false, true);
-        emit RatingUpdated(address(mockUSDC), 0, 3);
+        emit RatingUpdated(address(mockUSDC), 1, 3);
 
         // Call refreshRatingWithReport
         oracle.refreshRatingWithReport(address(mockUSDC), fakeReport);
@@ -865,7 +975,7 @@ contract SARMHookTest is Test, Deployers {
     }
 
     function test_DataLink_Integration_HookUsesDataLinkRating() public {
-        // This test verifies end-to-end: DataLink updates rating, hook enforces it
+        // This test verifies end-to-end: DataLink updates rating, hook applies fees accordingly
 
         // Setup: Configure feed IDs for both tokens
         oracle.setFeedId(address(mockUSDC), bytes32(uint256(0x111)));
@@ -875,7 +985,10 @@ contract SARMHookTest is Test, Deployers {
         oracle.setRatingManual(address(mockUSDC), 1);
         oracle.setRatingManual(address(mockUSDT), 1);
 
-        // Verify swap works with low risk
+        // Verify swap works with low risk (30% discount)
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolId, 1, 70);
+        
         vm.prank(BOB);
         swapRouter.swap(
             poolKey,
@@ -890,8 +1003,9 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.NORMAL));
 
-        // DataLink update: USDT rating degraded to 5 (depeg)
+        // DataLink update: USDT rating degraded to 5
         bytes32 usdtFeedId = bytes32(uint256(0x222));
         bytes memory verifiedData = abi.encode(
             usdtFeedId,
@@ -900,7 +1014,7 @@ contract SARMHookTest is Test, Deployers {
             uint192(0),
             uint192(0),
             uint32(block.timestamp + 1 days),
-            int192(int256(5e18)),  // rating 5 (depeg!)
+            int192(int256(5e18)),  // rating 5
             uint32(1)
         );
         mockVerifier.setResponse(verifiedData);
@@ -912,11 +1026,38 @@ contract SARMHookTest is Test, Deployers {
         (uint8 rating, ) = oracle.getRating(address(mockUSDT));
         assertEq(rating, 5);
 
-        // Now swap should be blocked by circuit breaker
+        // Swap is NOT blocked: pays normal fee (100) in ELEVATED_RISK mode
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolId, 5, 100);
+        
         vm.prank(BOB);
-        vm.expectRevert(); // Hook error wrapped by Uniswap
         swapRouter.swap(
             poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: false,  // Changed direction to avoid price limit
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MAX_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+        assertEq(uint8(hook.poolRiskMode(poolId)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
+    }
+
+    function test_ThreePools_DifferentFeesByRating() public {
+        console2.log("=== Testing Three Pools with Different Rating Combinations ===");
+        
+        // Pool 1: USDC/USDT (both rating 1) -> should get discount (fee 70)
+        console2.log("\nPool 1: USDC (rating 1) / USDT (rating 1)");
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolIdUSDC_USDT, 1, 70);
+        
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKeyUSDC_USDT,
             IPoolManager.SwapParams({
                 zeroForOne: true,
                 amountSpecified: -100e6,
@@ -928,5 +1069,55 @@ contract SARMHookTest is Test, Deployers {
             }),
             ZERO_BYTES
         );
+        console2.log("Fee: 70 (0.007%, 30% discount) - NORMAL mode");
+        assertEq(uint8(hook.poolRiskMode(poolIdUSDC_USDT)), uint8(SAGEHook.RiskMode.NORMAL));
+
+        // Pool 2: USDC/DAI (USDC rating 1, DAI rating 4) -> normal fee (100)
+        console2.log("\nPool 2: USDC (rating 1) / DAI (rating 4)");
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolIdUSDC_DAI, 4, 100);
+        
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKeyUSDC_DAI,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+        console2.log("Fee: 100 (0.01%, normal) - ELEVATED_RISK mode");
+        assertEq(uint8(hook.poolRiskMode(poolIdUSDC_DAI)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
+
+        // Pool 3: USDT/DAI (USDT rating 1, DAI rating 4) -> normal fee (100)
+        console2.log("\nPool 3: USDT (rating 1) / DAI (rating 4)");
+        vm.expectEmit(true, true, true, true);
+        emit FeeOverrideApplied(poolIdUSDT_DAI, 4, 100);
+        
+        vm.prank(BOB);
+        swapRouter.swap(
+            poolKeyUSDT_DAI,
+            IPoolManager.SwapParams({
+                zeroForOne: true,
+                amountSpecified: -100e6,
+                sqrtPriceLimitX96: MIN_PRICE_LIMIT
+            }),
+            PoolSwapTest.TestSettings({
+                takeClaims: false,
+                settleUsingBurn: false
+            }),
+            ZERO_BYTES
+        );
+        console2.log("Fee: 100 (0.01%, normal) - ELEVATED_RISK mode");
+        assertEq(uint8(hook.poolRiskMode(poolIdUSDT_DAI)), uint8(SAGEHook.RiskMode.ELEVATED_RISK));
+
+        console2.log("\n=== Summary ===");
+        console2.log("Premium pairs (both rated 1-2): Get 30% discount");
+        console2.log("Mixed pairs (one rated 3+): Pay normal fee");
     }
 }
