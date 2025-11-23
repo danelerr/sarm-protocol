@@ -1,0 +1,79 @@
+Warning: Found unknown `fuzz_runs` config for profile `ci` defined in foundry.toml.
+Warning: Found unknown `fuzz_runs` config for profile `default` defined in foundry.toml.
+No files changed, compilation skipped
+Script ran successfully.
+
+== Logs ==
+  Oracle: 0x444a4967487B655675c7F3EF0Ec68f93ae9f6866
+  Ratings configured
+  Mining salt for hook...
+  Predicted hook: 0x828e95D79fC2fD10882C13042edDe1071BB2E080
+  Salt: 8089
+  Hook deployed: 0x828e95D79fC2fD10882C13042edDe1071BB2E080
+  Pool USDC/USDT initialized
+  Pool USDC/DAI initialized
+  Pool DAI/USDT initialized
+  DEPLOYMENT COMPLETE!
+
+## Setting up 1 EVM.
+
+==========================
+
+Chain 84532
+
+Estimated gas price: 0.878557632 gwei
+
+Estimated total gas used for script: 2932952
+
+Estimated amount required: 0.002576767363889664 ETH
+
+==========================
+
+
+==========================
+
+ONCHAIN EXECUTION COMPLETE & SUCCESSFUL.
+##
+Start verification for (2) contracts
+Warning: Found unknown `fuzz_runs` config for profile `ci` defined in foundry.toml.
+Warning: Found unknown `fuzz_runs` config for profile `default` defined in foundry.toml.
+Warning: Found unknown `fuzz_runs` config for profile `ci` defined in foundry.toml.
+Warning: Found unknown `fuzz_runs` config for profile `default` defined in foundry.toml.
+Start verifying contract `0x444a4967487B655675c7F3EF0Ec68f93ae9f6866` deployed on base-sepolia
+EVM version: cancun
+Compiler version: 0.8.26
+Optimizations:    1000000
+Constructor args: 0000000000000000000000000000000000000000000000000000000000000000
+Attempting to verify on Sourcify. Pass the --etherscan-api-key <API_KEY> to verify on Etherscan, or use the --verifier flag to verify on another provider.
+
+Submitting verification for [SSAOracleAdapter] "0x444a4967487B655675c7F3EF0Ec68f93ae9f6866".
+Submitted contract for verification:
+	Verification Job ID: `37d2a462-9c52-4c4c-9411-cc809fc7d352`
+	URL: https://sourcify.dev/server/v2/verify/37d2a462-9c52-4c4c-9411-cc809fc7d352
+Warning: Verification is still pending...; waiting 15 seconds before trying again (7 tries remaining)
+Contract successfully verified:
+Status: `exact_match`
+Warning: Found unknown `fuzz_runs` config for profile `ci` defined in foundry.toml.
+Warning: Found unknown `fuzz_runs` config for profile `default` defined in foundry.toml.
+Warning: Found unknown `fuzz_runs` config for profile `ci` defined in foundry.toml.
+Warning: Found unknown `fuzz_runs` config for profile `default` defined in foundry.toml.
+Start verifying contract `0x828e95D79fC2fD10882C13042edDe1071BB2E080` deployed on base-sepolia
+EVM version: cancun
+Compiler version: 0.8.26
+Optimizations:    1000000
+Constructor args: 00000000000000000000000005e73354cfdd6745c338b50bcfdfa3aa6fa03408000000000000000000000000444a4967487b655675c7f3ef0ec68f93ae9f6866
+Attempting to verify on Sourcify. Pass the --etherscan-api-key <API_KEY> to verify on Etherscan, or use the --verifier flag to verify on another provider.
+
+Submitting verification for [SAGEHook] "0x828e95D79fC2fD10882C13042edDe1071BB2E080".
+Submitted contract for verification:
+	Verification Job ID: `edaaa692-f718-4e32-9738-02c1ad74bff6`
+	URL: https://sourcify.dev/server/v2/verify/edaaa692-f718-4e32-9738-02c1ad74bff6
+Warning: Verification is still pending...; waiting 15 seconds before trying again (7 tries remaining)
+Contract successfully verified:
+Status: `exact_match`
+All (2) contracts were verified!
+
+Transactions saved to: /home/daniel/Desktop/sarm-protocol/broadcast/DeploySAGE.s.sol/84532/run-latest.json
+
+Sensitive values saved to: /home/daniel/Desktop/sarm-protocol/cache/DeploySAGE.s.sol/84532/run-latest.json
+
