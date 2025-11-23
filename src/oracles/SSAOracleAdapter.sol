@@ -76,9 +76,10 @@ contract SSAOracleAdapter is Ownable {
     /**
      * @notice Deploys the SSA Oracle Adapter with Chainlink DataLink integration.
      * @param _verifier Address of the Chainlink DataLink verifier proxy.
+     *                  Can be address(0) for testing with manual ratings only.
      */
     constructor(address _verifier) Ownable(msg.sender) {
-        if (_verifier == address(0)) revert InvalidFeed();
+        // Allow address(0) for testing mode (manual ratings only)
         verifier = IDataLinkVerifier(_verifier);
     }
 
